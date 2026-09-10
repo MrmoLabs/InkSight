@@ -96,13 +96,64 @@ export function setupLayoutToggles({
         ]));
     }
 
-    const settingsBtn = document.getElementById('toolbar-settings');
-    if (settingsBtn) {
+    const settingsButtons = [...document.querySelectorAll('[data-open-settings]')];
+    if (settingsButtons.length) {
+        registerCleanup(registerEventListeners(settingsButtons.map((target) => ({
+            target,
+            event: 'click',
+            handler: () => settingsModal.open()
+        }))));
+    }
+
+    const toolbarMenus = [...document.querySelectorAll('.toolbar-menu')];
+    if (toolbarMenus.length) {
+        const closeMenus = ({ restoreFocus = false } = {}) => {
+            toolbarMenus.forEach((menu) => {
+                if (!menu.open) return;
+                menu.open = false;
+                if (restoreFocus) {
+                    menu.querySelector(':scope > summary')?.focus();
+                }
+            });
+        };
+
         registerCleanup(registerEventListeners([
-            {
-                target: settingsBtn,
+            ...toolbarMenus.map((menu) => ({
+                target: menu,
+                event: 'toggle',
+                handler: () => {
+                    if (!menu.open) return;
+                    toolbarMenus.forEach((otherMenu) => {
+                        if (otherMenu !== menu) otherMenu.open = false;
+                    });
+                }
+            })),
+            ...toolbarMenus.map((menu) => ({
+                target: menu,
                 event: 'click',
-                handler: () => settingsModal.open()
+                handler: (event) => {
+                    if (event.target.closest?.('button')) {
+                        menu.open = false;
+                    }
+                }
+            })),
+            {
+                target: document,
+                event: 'click',
+                handler: (event) => {
+                    if (!toolbarMenus.some((menu) => menu.contains(event.target))) {
+                        closeMenus();
+                    }
+                }
+            },
+            {
+                target: document,
+                event: 'keydown',
+                handler: (event) => {
+                    if (event.key === 'Escape') {
+                        closeMenus({ restoreFocus: true });
+                    }
+                }
             }
         ]));
     }

@@ -148,6 +148,10 @@ body {
   display: none;
 }
 
+.toolbar.toolbar-home .toolbar-save-primary {
+  display: none;
+}
+
 .toolbar-action-group {
   display: inline-flex;
   align-items: center;
@@ -160,6 +164,95 @@ body {
 
 .toolbar-action-group.subtle {
   background: transparent;
+}
+
+.toolbar-menu {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.toolbar-menu > summary {
+  list-style: none;
+}
+
+.toolbar-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.toolbar-menu-trigger {
+  box-sizing: border-box;
+}
+
+.toolbar-menu[open] > .toolbar-menu-trigger {
+  background: var(--paper-hover);
+  color: var(--brand-strong);
+}
+
+.toolbar-menu-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 700;
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--paper-raised);
+  box-shadow: var(--shadow-3);
+}
+
+.toolbar-menu-label {
+  padding: 7px 10px 4px;
+  color: var(--ink-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.toolbar-menu-item {
+  width: 100%;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-strong);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.toolbar-menu-item:hover,
+.toolbar-menu-item:focus-visible {
+  outline: none;
+  background: var(--paper-hover);
+  color: var(--brand-strong);
+}
+
+.toolbar-menu-item .material-icons-round {
+  flex: 0 0 auto;
+  font-size: 18px;
+}
+
+.toolbar-menu-divider {
+  height: 1px;
+  margin: 5px 6px;
+  background: var(--line);
+}
+
+.panel-width-btn.hidden {
+  display: none !important;
+}
+
+#toggle-mobile-tools {
+  display: none;
 }
 
 .action-pill {
@@ -300,7 +393,15 @@ body:not(.mobile-layout) .workspace-mode-group {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.sidebar-header,
+.outline-header {
   overflow: hidden;
+}
+
+.notes-header {
+  overflow: visible;
 }
 
 .brand,
@@ -342,6 +443,12 @@ body:not(.mobile-layout) .workspace-mode-group {
   position: relative;
   z-index: 3;
   pointer-events: auto;
+}
+
+/* The old icon strip scrolled inside the notes header. The consolidated menu
+   needs to escape that strip while remaining inside the notes panel. */
+.notes-header .panel-actions {
+  overflow: visible;
 }
 
 .sidebar-header-actions::-webkit-scrollbar,
@@ -2732,4 +2839,43 @@ body.mobile-layout .reader-container .toolbar .workspace-mode-btn {
     font-size: 0;
     gap: 0;
   }
+}
+
+/* Device ownership: the compact project/export tray belongs to phones only.
+   Desktop and tablet use the labeled overflow menu instead. */
+body.mobile-layout #toggle-mobile-tools {
+  display: flex;
+}
+
+body.mobile-layout .desktop-toolbar-menu,
+body.mobile-layout .toolbar-save-primary {
+  display: none;
+}
+
+body.mobile-layout #reader-toolbar.mobile-tools-open + #mobile-context-bar {
+  display: flex !important;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper-surface);
+  overflow-x: auto;
+  scrollbar-width: none;
+  z-index: 490;
+}
+
+body.mobile-layout #reader-toolbar.mobile-tools-open + #mobile-context-bar::-webkit-scrollbar {
+  display: none;
+}
+
+body.mobile-layout #reader-toolbar.mobile-tools-open + #mobile-context-bar .mobile-context-row.mobile-project-actions {
+  display: flex;
+  width: max-content;
+  min-width: 100%;
+  gap: 8px;
+}
+
+body.mobile-layout #reader-toolbar.mobile-tools-open + #mobile-context-bar .mobile-project-btn {
+  min-height: 40px;
+  flex: 1 0 auto;
 }

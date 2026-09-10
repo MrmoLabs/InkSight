@@ -33,6 +33,8 @@ describe('layout-controls', () => {
             <button id="mobile-workspace-mode-reading"></button>
             <button id="mobile-workspace-mode-capture"></button>
             <button id="mobile-workspace-mode-map"></button>
+            <details id="toolbar-menu-a" class="toolbar-menu"><summary>More</summary><button id="menu-action-a"></button></details>
+            <details id="toolbar-menu-b" class="toolbar-menu"><summary>Arrange</summary><button id="menu-action-b"></button></details>
         `;
         document.body.className = '';
 
@@ -128,5 +130,25 @@ describe('layout-controls', () => {
         document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
         expect(setMobileToolbarExpanded).toHaveBeenCalledWith(false);
+    });
+
+    it('keeps one toolbar menu open and closes menus after actions or Escape', () => {
+        setup();
+        const firstMenu = document.getElementById('toolbar-menu-a');
+        const secondMenu = document.getElementById('toolbar-menu-b');
+
+        firstMenu.open = true;
+        firstMenu.dispatchEvent(new Event('toggle'));
+        secondMenu.open = true;
+        secondMenu.dispatchEvent(new Event('toggle'));
+        expect(firstMenu.open).toBe(false);
+
+        document.getElementById('menu-action-b').click();
+        expect(secondMenu.open).toBe(false);
+
+        firstMenu.open = true;
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        expect(firstMenu.open).toBe(false);
+        expect(document.activeElement).toBe(firstMenu.querySelector('summary'));
     });
 });

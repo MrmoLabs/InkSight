@@ -54,9 +54,6 @@
           <button id="toolbar-search" class="icon-btn" title="Search Workspace" data-i18n-title="tool.search">
             <span class="material-icons-round">search</span>
           </button>
-          <button id="toolbar-sidebar-width-preset" class="icon-btn panel-width-btn" title="Cycle File List Width" data-i18n-title="tool.fileWidth">
-            <span class="material-icons-round">width_normal</span>
-          </button>
           <button id="toggle-outline" class="icon-btn" title="Toggle Outline" data-i18n-title="tool.toggleOutline">
             <span class="material-icons-round">toc</span>
           </button>
@@ -71,30 +68,6 @@
           <div class="toolbar-doc-block">
             <div class="toolbar-doc-copy">
               <div id="doc-title" class="text-two-line" title="No doc" data-i18n="app.noDoc">No doc</div>
-            </div>
-            <div class="toolbar-doc-actions">
-              <div class="toolbar-action-group" aria-label="Project actions">
-                <button id="toolbar-import-documents" class="icon-btn small action-pill" title="Import Documents" aria-label="Import Documents">
-                  <span class="material-icons-round">library_add</span>
-                </button>
-                <button id="toolbar-open-project" class="icon-btn small action-pill" title="Open Project Folder" aria-label="Open Project Folder">
-                  <span class="material-icons-round">folder_open</span>
-                </button>
-                <button id="toolbar-save-project" class="icon-btn small action-pill" title="Save Project Folder" aria-label="Save Project Folder">
-                  <span class="material-icons-round">save</span>
-                </button>
-              </div>
-              <div class="toolbar-action-group subtle" aria-label="Export actions">
-                <button id="toolbar-export-outline" class="icon-btn small action-pill" title="Export Markdown Outline" aria-label="Export Markdown Outline">
-                  <span class="material-icons-round">segment</span>
-                </button>
-                <button id="toolbar-export-citations" class="icon-btn small action-pill" title="Export Citation List" aria-label="Export Citation List">
-                  <span class="material-icons-round">format_quote</span>
-                </button>
-                <button id="toolbar-export-notes" class="icon-btn small action-pill" title="Export Reading Notes Package" aria-label="Export Reading Notes Package">
-                  <span class="material-icons-round">note_add</span>
-                </button>
-              </div>
             </div>
           </div>
           <div class="workspace-mode-group" role="tablist" aria-label="Workspace mode">
@@ -114,14 +87,39 @@
         </div>
 
         <div class="toolbar-section toolbar-section-trailing">
-          <button id="toolbar-settings" class="icon-btn" title="Settings" aria-label="Settings" data-i18n-title="app.settings" data-i18n-aria-label="app.settings">
-            <span class="material-icons-round">settings</span>
+          <button id="toolbar-save-project" class="icon-btn toolbar-save-primary" title="Save Project Folder" aria-label="Save Project Folder" data-i18n-title="app.save" data-i18n-aria-label="app.save">
+            <span class="material-icons-round">save</span>
           </button>
+          <details id="toolbar-more-menu" class="toolbar-menu desktop-toolbar-menu">
+            <summary class="icon-btn toolbar-menu-trigger" title="More actions" aria-label="More actions" data-i18n-title="tool.moreActions" data-i18n-aria-label="tool.moreActions">
+              <span class="material-icons-round">more_horiz</span>
+            </summary>
+            <div class="toolbar-menu-popover" role="menu">
+              <span class="toolbar-menu-label" data-i18n="tool.projectActions">Project</span>
+              <button id="toolbar-import-documents" class="toolbar-menu-item" type="button" role="menuitem">
+                <span class="material-icons-round">library_add</span><span data-i18n="app.import">Import</span>
+              </button>
+              <button id="toolbar-open-project" class="toolbar-menu-item" type="button" role="menuitem">
+                <span class="material-icons-round">folder_open</span><span data-i18n="app.open">Open</span>
+              </button>
+              <span class="toolbar-menu-label" data-i18n="tool.exportActions">Export</span>
+              <button id="toolbar-export-outline" class="toolbar-menu-item" type="button" role="menuitem">
+                <span class="material-icons-round">segment</span><span data-i18n="app.outline">Outline</span>
+              </button>
+              <button id="toolbar-export-citations" class="toolbar-menu-item" type="button" role="menuitem">
+                <span class="material-icons-round">format_quote</span><span data-i18n="app.cite">Citations</span>
+              </button>
+              <button id="toolbar-export-notes" class="toolbar-menu-item" type="button" role="menuitem">
+                <span class="material-icons-round">note_add</span><span data-i18n="app.notes">Notes</span>
+              </button>
+              <span class="toolbar-menu-divider" aria-hidden="true"></span>
+              <button id="toolbar-settings" class="toolbar-menu-item" type="button" role="menuitem" data-open-settings>
+                <span class="material-icons-round">settings</span><span data-i18n="app.settings">Settings</span>
+              </button>
+            </div>
+          </details>
           <button id="toggle-mobile-tools" class="icon-btn" title="Toggle Reader Tools" aria-expanded="false" data-i18n-title="tool.readerTools">
             <span class="material-icons-round">more_horiz</span>
-          </button>
-          <button id="toolbar-notes-width-preset" class="icon-btn panel-width-btn" title="Cycle Notes Width" data-i18n-title="tool.notesWidth">
-            <span class="material-icons-round">width_wide</span>
           </button>
           <button id="toggle-notes" class="icon-btn" title="Toggle Notes" data-i18n-title="tool.toggleNotes">
             <span class="material-icons-round">vertical_split</span>
@@ -163,6 +161,7 @@
           <button id="mobile-export-outline" class="mobile-project-btn subtle" type="button"><span class="material-icons-round">segment</span><span data-i18n="app.outline">Outline</span></button>
           <button id="mobile-export-citations" class="mobile-project-btn subtle" type="button"><span class="material-icons-round">format_quote</span><span data-i18n="app.cite">Cite</span></button>
           <button id="mobile-export-notes" class="mobile-project-btn subtle" type="button"><span class="material-icons-round">note_add</span><span data-i18n="app.notes">Notes</span></button>
+          <button id="mobile-settings" class="mobile-project-btn subtle" type="button" data-open-settings><span class="material-icons-round">settings</span><span data-i18n="app.settings">Settings</span></button>
         </div>
       </div>
 
@@ -264,21 +263,28 @@
               <span class="material-icons-round">account_tree</span>
             </button>
           </div>
-          <button id="notes-width-preset" class="icon-btn small panel-width-btn" title="Cycle Notes Width" data-i18n-title="tool.notesWidth">
-            <span class="material-icons-round">width_wide</span>
-          </button>
-          <button id="layout-btn" class="icon-btn small" title="Auto Layout" data-i18n-title="tool.autoLayout">
-            <span class="material-icons-round">auto_fix_high</span>
-          </button>
-          <button id="layout-by-source-btn" class="icon-btn small" title="Organize By Source" data-i18n-title="tool.organizeSource">
-            <span class="material-icons-round">account_tree</span>
-          </button>
-          <button id="layout-by-time-btn" class="icon-btn small" title="Organize By Time" data-i18n-title="tool.organizeTime">
-            <span class="material-icons-round">schedule</span>
-          </button>
-          <button id="layout-loose-btn" class="icon-btn small" title="Collect Loose Cards" data-i18n-title="tool.collectLoose">
-            <span class="material-icons-round">join_right</span>
-          </button>
+          <details id="notes-arrange-menu" class="toolbar-menu notes-arrange-menu">
+            <summary class="icon-btn small toolbar-menu-trigger" title="Arrange graph" aria-label="Arrange graph" data-i18n-title="tool.arrangeGraph" data-i18n-aria-label="tool.arrangeGraph">
+              <span class="material-icons-round">auto_fix_high</span>
+            </summary>
+            <div class="toolbar-menu-popover" role="menu">
+              <button id="notes-width-preset" class="toolbar-menu-item panel-width-btn" type="button" role="menuitem" title="Cycle Notes Width" data-i18n-title="tool.notesWidth">
+                <span class="material-icons-round">width_wide</span><span data-i18n="tool.notesWidth">Notes width</span>
+              </button>
+              <button id="layout-btn" class="toolbar-menu-item" type="button" role="menuitem" title="Auto Layout" data-i18n-title="tool.autoLayout">
+                <span class="material-icons-round">auto_fix_high</span><span data-i18n="tool.autoLayout">Auto layout</span>
+              </button>
+              <button id="layout-by-source-btn" class="toolbar-menu-item" type="button" role="menuitem" title="Organize By Source" data-i18n-title="tool.organizeSource">
+                <span class="material-icons-round">account_tree</span><span data-i18n="tool.organizeSource">By source</span>
+              </button>
+              <button id="layout-by-time-btn" class="toolbar-menu-item" type="button" role="menuitem" title="Organize By Time" data-i18n-title="tool.organizeTime">
+                <span class="material-icons-round">schedule</span><span data-i18n="tool.organizeTime">By time</span>
+              </button>
+              <button id="layout-loose-btn" class="toolbar-menu-item" type="button" role="menuitem" title="Collect Loose Cards" data-i18n-title="tool.collectLoose">
+                <span class="material-icons-round">join_right</span><span data-i18n="tool.collectLoose">Collect loose cards</span>
+              </button>
+            </div>
+          </details>
           <button id="close-notes-panel" class="icon-btn small close-notes-btn" title="Close Notes Panel" data-i18n-title="tool.closeNotes">
             <span class="material-icons-round">close</span>
           </button>

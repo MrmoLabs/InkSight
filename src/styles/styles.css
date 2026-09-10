@@ -559,6 +559,11 @@ body {
   z-index: 100;
 }
 
+.resizer.resizer-disabled {
+  display: none;
+  pointer-events: none;
+}
+
 .resizer:hover,
 .resizer:active {
   background-color: var(--primary);

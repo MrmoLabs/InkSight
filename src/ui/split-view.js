@@ -47,6 +47,8 @@ export class SplitView {
         };
 
         this.setupResizers();
+        this.syncResizerAvailability('left', this.isLeftCollapsed());
+        this.syncResizerAvailability('right', this.isRightCollapsed());
         window.addEventListener('resize', this.handleViewportChange);
         window.addEventListener('blur', this.handleWindowBlur);
         this.applyResponsiveState();
@@ -65,6 +67,10 @@ export class SplitView {
             };
 
             const startResize = (event) => {
+                if (element.classList.contains('resizer-disabled')) {
+                    return;
+                }
+
                 if (event.button !== undefined && event.button !== 0) {
                     return;
                 }
@@ -333,13 +339,25 @@ export class SplitView {
         return this.rightPanel.classList.contains('collapsed');
     }
 
+    syncResizerAvailability(panel, collapsed) {
+        const resizer = panel === 'left' ? this.resizerLeft : this.resizerRight;
+        resizer.classList.toggle('resizer-disabled', collapsed);
+        resizer.setAttribute('aria-hidden', String(collapsed));
+
+        if (collapsed && this.activeResize?.panel === panel) {
+            this.stopActiveResize();
+        }
+    }
+
     setLeftCollapsed(collapsed) {
         this.leftPanel.classList.toggle('collapsed', collapsed);
+        this.syncResizerAvailability('left', collapsed);
         this.emitPanelState('left', !collapsed);
     }
 
     setRightCollapsed(collapsed) {
         this.rightPanel.classList.toggle('collapsed', collapsed);
+        this.syncResizerAvailability('right', collapsed);
         this.emitPanelState('right', !collapsed);
     }
 

@@ -4,6 +4,10 @@ All notable changes to InkSight are documented in this file. This project follow
 
 ## [Unreleased]
 
+### Fixed
+
+- Reader toolbar controls now wrap into a stable two-row layout when side panels leave the reader pane narrow, preventing title-bar icons from overlapping.
+
 ## [1.2.0] - 2026-09-09
 
 ### Added

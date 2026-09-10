@@ -1717,6 +1717,11 @@ body:not(.mobile-layout) .selection-mode-floating .icon-btn:hover {
 /* Narrow reader pane (e.g. tight split view): compress toolbar content so the
    mode switcher never overlaps the trailing actions. Container queries respond
    to the pane width, which viewport media queries cannot see. */
+.reader-container {
+  container-name: reader-pane;
+  container-type: inline-size;
+}
+
 .toolbar {
   container-type: inline-size;
 }
@@ -2657,4 +2662,74 @@ body.compact-layout .reader-container .toolbar .workspace-mode-btn,
 body.mobile-layout .reader-container .toolbar .workspace-mode-btn {
   min-width: 44px;
   min-height: 40px;
+}
+
+/* A desktop window can still leave the reader pane very narrow when both side
+   panels are open. Split the title bar into two rows based on the pane itself,
+   not the viewport, and remove redundant width controls before they collide. */
+@container reader-pane (max-width: 620px) {
+  #reader-container > #reader-toolbar {
+    height: auto !important;
+    min-height: var(--header-height);
+    padding: 6px 8px !important;
+    gap: 4px 6px;
+    flex-wrap: wrap;
+    overflow: visible;
+    align-content: center;
+  }
+
+  #reader-toolbar .toolbar-section-leading,
+  #reader-toolbar .toolbar-section-trailing {
+    order: 1;
+    gap: 2px;
+  }
+
+  #reader-toolbar .toolbar-section-trailing {
+    margin-left: auto;
+  }
+
+  #reader-toolbar .toolbar-section-center {
+    order: 2;
+    flex: 1 1 100%;
+    width: 100%;
+    gap: 6px;
+  }
+
+  #reader-toolbar .toolbar-doc-actions,
+  #reader-toolbar .panel-width-btn,
+  #reader-toolbar .toolbar-mobile-summary {
+    display: none;
+  }
+
+  #reader-toolbar .toolbar-section .icon-btn {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
+    padding: 5px;
+  }
+
+  #reader-toolbar .toolbar-doc-block,
+  #reader-toolbar .toolbar-doc-copy {
+    min-width: 0;
+  }
+
+  #reader-toolbar #doc-title {
+    max-width: none;
+  }
+
+  #reader-toolbar .workspace-mode-group {
+    flex: 0 0 auto;
+    grid-template-columns: repeat(3, 36px);
+    gap: 2px;
+    padding: 2px;
+  }
+
+  #reader-toolbar .workspace-mode-btn {
+    min-width: 36px;
+    min-height: 32px;
+    padding: 0;
+    font-size: 0;
+    gap: 0;
+  }
 }

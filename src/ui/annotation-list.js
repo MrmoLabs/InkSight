@@ -370,7 +370,7 @@ export class AnnotationList {
         statusIcon.className = 'material-icons-round';
         if (this.getMissingSourceIds().has(card.sourceId)) {
             statusIcon.textContent = 'link_off';
-            statusTag.title = 'Missing link — re-import the source to relink';
+            statusTag.title = t('annotation.missingLink');
         } else if (card.isOnBoard === false) {
             statusIcon.textContent = 'account_tree';
             statusTag.title = t('annotation.notOnMap');

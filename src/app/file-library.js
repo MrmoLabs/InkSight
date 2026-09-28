@@ -20,7 +20,7 @@ function describeDocumentStatus(file, index) {
         return typeLabel || `DOC ${index + 1}`;
     }
 
-    return 'Missing';
+    return t('library.missing');
 }
 
 function documentTypeBadge(file) {
@@ -120,32 +120,32 @@ export function createFileLibraryRenderer({
         const projectStatusLabel = projectStatus.linkedToDirectory ? t('library.linked') : t('library.autosave');
 
         const projectPanelMarkup = `
-        <section class="library-project-panel workspace-card compact-footer" aria-label="Project actions">
+        <section class="library-project-panel workspace-card compact-footer" aria-label="${escapeHtml(t('a11y.projectActions'))}">
           <div class="library-project-header">
             <div class="library-project-copy">
-              <strong class="text-single-line">${projectStatus.title}</strong>
+              <strong class="text-single-line">${escapeHtml(projectStatus.title)}</strong>
               <span class="library-project-status text-single-line">${projectStatusLabel}</span>
             </div>
-            <button type="button" class="library-project-refresh-btn" data-project-action="history" title="Refresh project history" aria-label="Refresh project history">
+            <button type="button" class="library-project-refresh-btn" data-project-action="history" title="${escapeHtml(t('library.refreshHistory'))}" aria-label="${escapeHtml(t('library.refreshHistory'))}">
               <span class="material-icons-round">refresh</span>
             </button>
           </div>
           <div class="library-project-actions">
-            <button type="button" class="library-project-btn labeled" data-project-action="snapshot" title="Save a workspace snapshot">
+            <button type="button" class="library-project-btn labeled" data-project-action="snapshot" title="${escapeHtml(t('library.snapshotTitle'))}">
               <span class="material-icons-round">bookmark_add</span><span>${escapeHtml(t('library.snapshot'))}</span>
             </button>
-            <button type="button" class="library-project-btn labeled" data-project-action="open" title="Open a project folder">
+            <button type="button" class="library-project-btn labeled" data-project-action="open" title="${escapeHtml(t('library.openFolderTitle'))}">
               <span class="material-icons-round">folder_open</span><span>${escapeHtml(t('app.open'))}</span>
             </button>
-            <button type="button" class="library-project-btn labeled" data-project-action="save" title="Save the project folder">
+            <button type="button" class="library-project-btn labeled" data-project-action="save" title="${escapeHtml(t('library.saveFolderTitle'))}">
               <span class="material-icons-round">save</span><span>${escapeHtml(t('app.save'))}</span>
             </button>
-            <button type="button" class="library-project-btn labeled" data-project-action="import" title="Import documents">
+            <button type="button" class="library-project-btn labeled" data-project-action="import" title="${escapeHtml(t('home.importDocuments'))}">
               <span class="material-icons-round">library_add</span><span>${escapeHtml(t('app.import'))}</span>
             </button>
           </div>
           ${latestSnapshot ? `
-          <button type="button" class="library-project-snapshot-row" data-project-history-id="${escapeHtml(latestSnapshot.snapshotId)}" title="Restore this snapshot">
+          <button type="button" class="library-project-snapshot-row" data-project-history-id="${escapeHtml(latestSnapshot.snapshotId)}" title="${escapeHtml(t('library.restoreSnapshotTitle'))}">
             <span class="material-icons-round">restore</span>
             <span class="library-project-snapshot-copy">
               <span class="text-single-line">${escapeHtml(t('library.lastSnapshot'))}</span>
@@ -176,7 +176,7 @@ export function createFileLibraryRenderer({
              data-open-file-id="${escapeHtml(file.id)}"
              data-file-index="${index}"
              draggable="${file.loaded ? 'true' : 'false'}"
-             title="${escapeHtml(file.loaded ? file.name : `${file.name} - re-import this source file to relink annotations`)}">
+             title="${escapeHtml(file.loaded ? file.name : t('library.relinkHint', { name: file.name }))}">
           ${(() => {
               const badge = documentTypeBadge(file);
               return `<span class="material-icons-round file-item-icon file-item-icon--${badge.modifier}">${badge.icon}</span>`;
@@ -187,13 +187,13 @@ export function createFileLibraryRenderer({
           </span>
           ${file.loaded ? `
           <span class="file-item-actions">
-            <button type="button" class="file-item-action-btn" data-file-action="move-up" data-file-id="${escapeHtml(file.id)}" title="Move Up" ${index === 0 ? 'disabled' : ''}>
+            <button type="button" class="file-item-action-btn" data-file-action="move-up" data-file-id="${escapeHtml(file.id)}" title="${escapeHtml(t('library.moveUp'))}" ${index === 0 ? 'disabled' : ''}>
               <span class="material-icons-round">keyboard_arrow_up</span>
             </button>
-            <button type="button" class="file-item-action-btn" data-file-action="move-down" data-file-id="${escapeHtml(file.id)}" title="Move Down" ${index === files.length - 1 ? 'disabled' : ''}>
+            <button type="button" class="file-item-action-btn" data-file-action="move-down" data-file-id="${escapeHtml(file.id)}" title="${escapeHtml(t('library.moveDown'))}" ${index === files.length - 1 ? 'disabled' : ''}>
               <span class="material-icons-round">keyboard_arrow_down</span>
             </button>
-            <button type="button" class="file-item-action-btn danger" data-file-action="remove" data-file-id="${escapeHtml(file.id)}" title="Remove From Library">
+            <button type="button" class="file-item-action-btn danger" data-file-action="remove" data-file-id="${escapeHtml(file.id)}" title="${escapeHtml(t('library.removeFromLibrary'))}">
               <span class="material-icons-round">delete</span>
             </button>
           </span>

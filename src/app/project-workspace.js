@@ -1,5 +1,6 @@
 import { emitAppNotification } from '../ui/app-notifications.js';
 import { createLogger } from '../core/logger.js';
+import { t } from '../i18n/index.js';
 import { getAppContext, setAppService } from './app-context.js';
 import {
     formatAutosaveTime,
@@ -28,6 +29,17 @@ import { APP_EVENTS } from '../core/event-names.js';
 import { modalManager } from '../ui/modal-manager.js';
 
 const logger = createLogger('ProjectWorkspace');
+
+const MODE_LABEL_KEYS = {
+    'Server workspace': 'mode.server',
+    'Snapshot history': 'mode.snapshotHistory',
+    'Local project export': 'mode.localExport'
+};
+
+function translateModeLabel(modeLabel) {
+    const key = MODE_LABEL_KEYS[modeLabel];
+    return key ? t(key) : modeLabel;
+}
 
 export function createProjectWorkspaceController({
     localStorage,
@@ -84,11 +96,11 @@ export function createProjectWorkspaceController({
 
         return {
             linkedToDirectory,
-            title: linkedToDirectory ? 'Project Folder Linked' : 'Workspace Not Saved As A Project Yet',
+            title: linkedToDirectory ? t('status.linkedTitle') : t('status.unlinkedTitle'),
             description: linkedToDirectory
-                ? 'This workspace is linked to a project folder. Saving will update the board state, bundled source documents, and extracted assets in that folder.'
-                : 'Autosave writes to the server workspace under runtime-data. Use Save Project Folder only when you want to export a full local copy.',
-            summary: `${documentCount} loaded ${documentCount === 1 ? 'document' : 'documents'}`,
+                ? t('status.linkedDesc')
+                : t('status.unlinkedDesc'),
+            summary: t(documentCount === 1 ? 'status.docs.one' : 'status.docs.other', { count: documentCount }),
             projectDirectoryName,
             runtimeRoot,
             snapshotHistory: projectStatusState.snapshotHistory,
@@ -132,8 +144,8 @@ export function createProjectWorkspaceController({
         restoreInksightPersistence(result.payload, appContext, {
             onBookMismatch: ({ bookName }) => {
                 emitAppNotification({
-                    title: 'Book Mismatch',
-                    message: `This mind map was saved for a different book (${bookName}). Nodes might not link correctly until the original source files are relinked.`,
+                    title: t('notify.bookMismatch.title'),
+                    message: t('notify.bookMismatch.message', { book: bookName }),
                     level: 'warning'
                 });
             }
@@ -157,7 +169,7 @@ export function createProjectWorkspaceController({
             lastOpenedAt: Date.now(),
             source: modeLabel === 'Local project export' ? 'project-folder' : 'runtime-workspace'
         });
-        showSaveStatus('success', successMessage || `Recovered ${modeLabel.toLowerCase()}.`, 2200);
+        showSaveStatus('success', successMessage || t('notify.recovered', { mode: translateModeLabel(modeLabel).toLowerCase() }), 2200);
         return true;
     }
 
@@ -262,7 +274,9 @@ export function createProjectWorkspaceController({
         await refreshProjectSnapshotHistory();
         return restoreWorkspacePayload(result, {
             modeLabel: 'Server workspace',
-            successMessage: `Recovered server workspace${result.projectName ? `: ${result.projectName}` : ''}.`
+            successMessage: result.projectName
+                ? t('notify.recoveredServerNamed', { name: result.projectName })
+                : t('notify.recoveredServer')
         });
     }
 
@@ -270,16 +284,16 @@ export function createProjectWorkspaceController({
         const snapshots = await refreshProjectSnapshotHistory();
         if (!snapshots.length) {
             emitAppNotification({
-                title: 'Project History',
-                message: 'No saved workspace snapshots are available yet.',
+                title: t('notify.historyEmpty.title'),
+                message: t('notify.historyEmpty.message'),
                 level: 'warning'
             });
             return [];
         }
 
         emitAppNotification({
-            title: 'Project History Ready',
-            message: `Loaded ${snapshots.length} recent workspace snapshot ${snapshots.length === 1 ? 'entry' : 'entries'} in the library panel.`,
+            title: t('notify.historyReady.title'),
+            message: t(snapshots.length === 1 ? 'notify.historyReady.message.one' : 'notify.historyReady.message.other', { count: snapshots.length }),
             level: 'success'
         });
         return snapshots;
@@ -289,8 +303,8 @@ export function createProjectWorkspaceController({
         const restored = await restoreRuntimeWorkspace();
         if (!restored) {
             emitAppNotification({
-                title: 'Workspace Continue',
-                message: 'No saved runtime workspace is available yet.',
+                title: t('notify.continueEmpty.title'),
+                message: t('notify.continueEmpty.message'),
                 level: 'warning'
             });
         }
@@ -321,9 +335,9 @@ export function createProjectWorkspaceController({
         const runtimeIdentity = ensureProjectIdentity();
         const snapshot = projectStatusState.snapshotHistory.find((entry) => entry.snapshotId === snapshotId);
         const confirmed = await modalManager.confirm({
-            title: 'Restore Snapshot',
-            message: `Restore the workspace snapshot from ${formatAutosaveTime(Date.parse(snapshot?.savedAt || Date.now()))}? The current unsaved state will be replaced.`,
-            confirmLabel: 'Restore',
+            title: t('history.restoreTitle'),
+            message: t('history.restoreMessage', { time: formatAutosaveTime(Date.parse(snapshot?.savedAt || Date.now())) }),
+            confirmLabel: t('library.restore'),
             danger: true
         });
         if (!confirmed) {
@@ -336,8 +350,8 @@ export function createProjectWorkspaceController({
         }).catch(() => null);
         if (!result?.payload) {
             emitAppNotification({
-                title: 'Project History',
-                message: 'The selected snapshot could not be restored.',
+                title: t('notify.historyRestoreFailed.title'),
+                message: t('notify.historyRestoreFailed.message'),
                 level: 'error'
             });
             return false;
@@ -346,7 +360,9 @@ export function createProjectWorkspaceController({
         await refreshProjectSnapshotHistory();
         return restoreWorkspacePayload(result, {
             modeLabel: 'Snapshot history',
-            successMessage: `Restored snapshot${snapshot?.projectName ? `: ${snapshot.projectName}` : ''}.`
+            successMessage: snapshot?.projectName
+                ? t('notify.restoredSnapshotNamed', { name: snapshot.projectName })
+                : t('notify.restoredSnapshot')
         });
     }
 
@@ -365,7 +381,7 @@ export function createProjectWorkspaceController({
             }
 
             if (forceExport) {
-                showSaveStatus('saving', 'Exporting project to local folder...', 0);
+                showSaveStatus('saving', t('status.exporting'), 0);
                 let payload = null;
                 try {
                     payload = await saveCurrentProject(board, {
@@ -373,11 +389,11 @@ export function createProjectWorkspaceController({
                         forcePrompt: forceExport
                     });
                 } catch {
-                    showSaveStatus('error', 'Project export was cancelled.', 1800);
+                    showSaveStatus('error', t('status.exportCancelled'), 1800);
                     return false;
                 }
                 if (!payload) {
-                    showSaveStatus('error', 'Project export was cancelled.', 1800);
+                    showSaveStatus('error', t('status.exportCancelled'), 1800);
                     return false;
                 }
 
@@ -391,21 +407,21 @@ export function createProjectWorkspaceController({
                     lastOpenedAt: Date.now(),
                     source: 'project-folder'
                 });
-                showSaveStatus('success', 'Project exported to local folder.');
+                showSaveStatus('success', t('status.exported'));
                 return true;
             }
 
-            showSaveStatus('saving', 'Saving workspace snapshot...', 0);
-            const saved = await persistRuntimeProjectSnapshot({ note: snapshotNote || 'Auto snapshot' });
+            showSaveStatus('saving', t('status.savingSnapshot'), 0);
+            const saved = await persistRuntimeProjectSnapshot({ note: snapshotNote || t('history.autoNote') });
             if (saved) {
                 projectStatusState.lastSavedAt = Date.now();
                 projectStatusState.lastMode = 'Server workspace';
-                showSaveStatus('success', `Workspace snapshot saved at ${formatAutosaveTime(projectStatusState.lastSavedAt)}.`);
+                showSaveStatus('success', t('status.snapshotSaved', { time: formatAutosaveTime(projectStatusState.lastSavedAt) }));
 
                 if (notify) {
                     emitAppNotification({
-                        title: 'Server Workspace Saved',
-                        message: 'Saved the current workspace state into the server runtime-data area. Use Save Project Folder when you want a local export for the terminal user.',
+                        title: t('notify.serverSaved.title'),
+                        message: t('notify.serverSaved.message'),
                         level: 'success'
                     });
                 }
@@ -448,8 +464,8 @@ export function createProjectWorkspaceController({
         }
 
         emitAppNotification({
-            title: 'Project Folder',
-            message: 'Project loading is not ready yet. Please wait for the workspace board to finish initializing.',
+            title: t('notify.openNotReady.title'),
+            message: t('notify.openNotReady.message'),
             level: 'warning'
         });
     }
@@ -458,24 +474,24 @@ export function createProjectWorkspaceController({
         const board = getAppContext().board;
         if (!board) {
             emitAppNotification({
-                title: 'Snapshot',
-                message: 'Please wait for the workspace board to finish initializing before saving a snapshot.',
+                title: t('notify.snapshotNotReady.title'),
+                message: t('notify.snapshotNotReady.message'),
                 level: 'warning'
             });
             return false;
         }
 
         const note = await modalManager.prompt({
-            title: 'Save Snapshot',
-            message: 'Add an optional note so you can recognise this snapshot later.',
-            placeholder: 'e.g. before restructuring the map',
-            confirmLabel: 'Save Snapshot'
+            title: t('history.saveTitle'),
+            message: t('history.saveMessage'),
+            placeholder: t('history.savePlaceholder'),
+            confirmLabel: t('history.saveConfirm')
         });
         if (note === null) {
             return false;
         }
 
-        const saved = await performProjectAutosave({ notify: true, snapshotNote: note || 'Manual snapshot' });
+        const saved = await performProjectAutosave({ notify: true, snapshotNote: note || t('history.manualNote') });
         return Boolean(saved);
     }
 
@@ -506,25 +522,25 @@ export function createProjectWorkspaceController({
             });
 
             try {
-                const runtimeSaved = await persistRuntimeProjectSnapshot({ note: 'Saved project state' });
+                const runtimeSaved = await persistRuntimeProjectSnapshot({ note: t('history.savedProjectNote') });
                 if (!runtimeSaved) {
-                    showSaveStatus('error', 'Project folder saved, but reload recovery could not be updated.', 2800);
+                    showSaveStatus('error', t('status.savePartial'), 2800);
                     return;
                 }
             } catch (error) {
                 logger.warn('Runtime snapshot sync after project save failed', error);
-                showSaveStatus('error', 'Project folder saved, but reload recovery could not be updated.', 2800);
+                showSaveStatus('error', t('status.savePartial'), 2800);
                 return;
             }
 
             projectStatusState.lastSavedAt = Date.now();
-            showSaveStatus('success', 'Project saved and reload recovery updated.');
+            showSaveStatus('success', t('status.savedAndRecovered'));
             return;
         }
 
         emitAppNotification({
-            title: 'Project Folder',
-            message: 'Project saving is not ready yet. Please wait for the workspace board to finish initializing.',
+            title: t('notify.saveNotReady.title'),
+            message: t('notify.saveNotReady.message'),
             level: 'warning'
         });
     }
@@ -543,7 +559,7 @@ export function createProjectWorkspaceController({
             lastOpenedAt: Date.now(),
             source: event.detail?.source || 'project-folder'
         });
-        showSaveStatus('success', `Saved at ${formatAutosaveTime(projectStatusState.lastSavedAt)}.`);
+        showSaveStatus('success', t('status.savedAt', { time: formatAutosaveTime(projectStatusState.lastSavedAt) }));
     }
 
     function handleProjectOpened(event) {
@@ -559,7 +575,7 @@ export function createProjectWorkspaceController({
             lastOpenedAt: event.detail?.openedAt || Date.now(),
             source: event.detail?.source || 'project-folder'
         });
-        showSaveStatus('success', 'Project opened and synced to the current workspace.', 1800);
+        showSaveStatus('success', t('status.opened'), 1800);
     }
 
     return {

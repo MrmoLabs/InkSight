@@ -1,3 +1,5 @@
+import { t } from '../i18n/index.js';
+
 export async function navigateToLinkedSource({
     sourceId,
     highlightId,
@@ -14,7 +16,7 @@ export async function navigateToLinkedSource({
 
     if (!file) {
         notify?.({
-            message: `Source file is not loaded yet. Re-import it from the library to restore linked navigation.`,
+            message: t('navigation.sourceNotLoaded'),
             level: 'warning'
         });
         return { status: 'missing-file', effectiveSourceId, highlight };
@@ -22,7 +24,7 @@ export async function navigateToLinkedSource({
 
     if (!highlight) {
         notify?.({
-            message: 'The linked highlight could not be found in the restored project state.',
+            message: t('navigation.highlightMissing'),
             level: 'warning'
         });
         return { status: 'missing-highlight', effectiveSourceId, file };
@@ -42,7 +44,7 @@ export async function navigateToLinkedSource({
         await reader.scrollToHighlight(highlightId);
         if (highlight.needsValidation) {
             notify?.({
-                message: 'This restored source location used a fallback match and should be validated against the original document.',
+                message: t('navigation.needsValidation'),
                 level: 'warning'
             });
             return { status: 'needs-validation', effectiveSourceId, file, highlight };

@@ -1,3 +1,5 @@
+import { t } from '../i18n/index.js';
+
 function groupResults(results) {
     return {
         document: results.filter((result) => result.type === 'document'),
@@ -19,8 +21,8 @@ function renderResultGroup(title, results) {
               <button type="button" class="workspace-search-result" data-search-result-id="${result.id}" data-search-result-type="${result.type}">
                 <span class="workspace-search-result-icon material-icons-round">${result.type === 'document' ? 'description' : result.type === 'card' ? 'sticky_note_2' : 'format_quote'}</span>
                 <span class="workspace-search-result-title text-two-line">${result.title}</span>
-                <span class="workspace-search-result-meta">${result.type}</span>
-                <span class="workspace-search-result-excerpt text-three-line">${result.excerpt || 'No preview available'}</span>
+                <span class="workspace-search-result-meta">${t(`search.type.${result.type}`)}</span>
+                <span class="workspace-search-result-excerpt text-three-line">${result.excerpt || t('search.noPreview')}</span>
               </button>
             `).join('')}
           </div>
@@ -78,9 +80,9 @@ export function createSearchController({
         const grouped = groupResults(results);
         elements.workspaceSearchEmpty.hidden = true;
         elements.workspaceSearchResults.innerHTML = [
-            renderResultGroup('Documents', grouped.document),
-            renderResultGroup('Cards', grouped.card),
-            renderResultGroup('Highlights', grouped.highlight)
+            renderResultGroup(t('search.documents'), grouped.document),
+            renderResultGroup(t('search.cards'), grouped.card),
+            renderResultGroup(t('search.highlights'), grouped.highlight)
         ].join('');
     }
 

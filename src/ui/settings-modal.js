@@ -174,7 +174,8 @@ class SettingsModal {
 
         this.themeSelect = document.createElement('select');
         this.themeSelect.className = 'settings-modal__select';
-        this.themeSelect.setAttribute('aria-label', 'Theme');
+        this.themeSelect.setAttribute('aria-label', t('settings.theme'));
+        this.themeSelect.dataset.i18nAriaLabel = 'settings.theme';
         THEME_OPTIONS.forEach(({ value, labelKey }) => {
             const option = document.createElement('option');
             option.value = value;

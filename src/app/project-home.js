@@ -53,7 +53,7 @@ export function renderProjectHome(model = {}) {
     ];
 
     return `
-        <section class="project-home" aria-label="Project home">
+        <section class="project-home" aria-label="${escapeHtml(t('home.title'))}">
           <header class="project-home-hero">
             <span class="material-icons-round project-home-icon">auto_stories</span>
             <div class="project-home-copy">

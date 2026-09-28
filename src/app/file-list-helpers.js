@@ -1,3 +1,5 @@
+import { t } from '../i18n/index.js';
+
 export function reorderFilesById(files = [], fileId, targetIndex) {
     const currentIndex = files.findIndex((file) => file.id === fileId);
     if (currentIndex < 0) {
@@ -24,19 +26,19 @@ export function buildDocumentRemovalPrompt({
     const referenceCount = cardCount + highlightCount;
 
     if (referenceCount <= 0 && !isCurrentDocument) {
-        return `Remove "${name}" from the library?`;
+        return t('docs.removeSimple', { name });
     }
 
     const details = [];
     if (cardCount > 0) {
-        details.push(`${cardCount} linked ${cardCount === 1 ? 'card' : 'cards'}`);
+        details.push(t(cardCount === 1 ? 'docs.linkedCards.one' : 'docs.linkedCards.other', { count: cardCount }));
     }
     if (highlightCount > 0) {
-        details.push(`${highlightCount} linked ${highlightCount === 1 ? 'highlight' : 'highlights'}`);
+        details.push(t(highlightCount === 1 ? 'docs.linkedHighlights.one' : 'docs.linkedHighlights.other', { count: highlightCount }));
     }
     if (isCurrentDocument) {
-        details.push('this is the currently open document');
+        details.push(t('docs.currentDoc'));
     }
 
-    return `Remove "${name}" from the library?\n\nThis will keep the notes and mind map data, but source navigation will need relinking for ${details.join(', ')}.`;
+    return t('docs.removeDetail', { name, details: details.join(', ') });
 }

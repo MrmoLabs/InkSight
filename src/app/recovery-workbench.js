@@ -1,5 +1,6 @@
 import { getAppContext } from './app-context.js';
 import { buildRecoveryDiagnostics, findLoadedDocumentMatch } from './document-relink.js';
+import { t } from '../i18n/index.js';
 
 function escapeHtml(value) {
     return String(value ?? '')
@@ -86,7 +87,7 @@ export function buildRecoveryWorkbenchModel(appContext = getAppContext()) {
             loadedMatch,
             autoMatchReady: Boolean(loadedMatch),
             status: loadedMatch ? 'needs_validation' : 'needs_import',
-            statusLabel: loadedMatch ? 'Needs validation' : 'Needs source import'
+            statusLabel: loadedMatch ? t('recovery.needsValidation') : t('recovery.needsImport')
         };
     });
 
@@ -107,12 +108,12 @@ export function renderRecoveryWorkbenchMarkup(workbench) {
     }
 
     return `
-        <section class="library-recovery-panel" aria-label="Missing source files">
+        <section class="library-recovery-panel" aria-label="${escapeHtml(t('recovery.panelAria'))}">
           <div class="library-recovery-header">
             <span class="material-icons-round">link_off</span>
             <div class="library-recovery-copy">
-              <strong>${workbench.documents.length} source ${workbench.documents.length === 1 ? 'file is' : 'files are'} waiting to be relinked</strong>
-              <p class="text-two-line">Auto match, import, or validate source links.</p>
+              <strong>${escapeHtml(t(workbench.documents.length === 1 ? 'recovery.waiting.one' : 'recovery.waiting.other', { count: workbench.documents.length }))}</strong>
+              <p class="text-two-line">${escapeHtml(t('recovery.hint'))}</p>
             </div>
           </div>
           <div class="library-recovery-stats">
@@ -122,13 +123,13 @@ export function renderRecoveryWorkbenchMarkup(workbench) {
             <span><span class="material-icons-round">description</span>${workbench.totalDocuments}</span>
           </div>
           <div class="library-recovery-actions icon-row">
-            <button type="button" class="library-recovery-secondary-btn icon-only-btn" data-recovery-action="auto" title="Auto Match" aria-label="Auto Match"><span class="material-icons-round">auto_awesome</span></button>
-            <button type="button" class="library-recovery-secondary-btn icon-only-btn" data-recovery-action="bulk" title="Import Sources" aria-label="Import Sources"><span class="material-icons-round">upload_file</span></button>
-            <button type="button" class="library-recovery-secondary-btn icon-only-btn" data-recovery-action="validate" title="Validate Links" aria-label="Validate Links"><span class="material-icons-round">task_alt</span></button>
+            <button type="button" class="library-recovery-secondary-btn icon-only-btn" data-recovery-action="auto" title="${escapeHtml(t('recovery.autoMatch'))}" aria-label="${escapeHtml(t('recovery.autoMatch'))}"><span class="material-icons-round">auto_awesome</span></button>
+            <button type="button" class="library-recovery-secondary-btn icon-only-btn" data-recovery-action="bulk" title="${escapeHtml(t('recovery.importSources'))}" aria-label="${escapeHtml(t('recovery.importSources'))}"><span class="material-icons-round">upload_file</span></button>
+            <button type="button" class="library-recovery-secondary-btn icon-only-btn" data-recovery-action="validate" title="${escapeHtml(t('recovery.validateLinks'))}" aria-label="${escapeHtml(t('recovery.validateLinks'))}"><span class="material-icons-round">task_alt</span></button>
           </div>
           ${workbench.lastSummary ? `
             <div class="library-recovery-summary">
-              <strong>${workbench.lastSummary.matched.length} matched, ${workbench.lastSummary.remaining.length} still pending</strong>
+              <strong>${escapeHtml(t('recovery.summary', { matched: workbench.lastSummary.matched.length, remaining: workbench.lastSummary.remaining.length }))}</strong>
               <p>${escapeHtml(workbench.lastSummary.message)}</p>
             </div>
           ` : ''}
@@ -137,10 +138,10 @@ export function renderRecoveryWorkbenchMarkup(workbench) {
               <div class="library-recovery-item">
                 <div class="library-recovery-item-copy">
                   <span class="library-recovery-name">${escapeHtml(document.name)}</span>
-                  <span class="library-recovery-meta">${escapeHtml(document.type || 'Unknown file type')}</span>
+                  <span class="library-recovery-meta">${escapeHtml(document.type || t('recovery.unknownType'))}</span>
                   <div class="library-recovery-tags">
-                    <span title="Cards"><span class="material-icons-round">sticky_note_2</span>${document.cardCount}</span>
-                    <span title="Highlights"><span class="material-icons-round">format_quote</span>${document.highlightCount}</span>
+                    <span title="${escapeHtml(t('search.cards'))}"><span class="material-icons-round">sticky_note_2</span>${document.cardCount}</span>
+                    <span title="${escapeHtml(t('search.highlights'))}"><span class="material-icons-round">format_quote</span>${document.highlightCount}</span>
                     <span title="${escapeHtml(document.statusLabel)}"><span class="material-icons-round">${document.loadedMatch ? 'task_alt' : 'warning_amber'}</span>${escapeHtml(document.statusLabel)}</span>
                     ${document.loadedMatch ? `<span title="${escapeHtml(document.loadedMatch.name)}"><span class="material-icons-round">link</span>${escapeHtml(document.loadedMatch.name)}</span>` : ''}
                   </div>
@@ -151,8 +152,8 @@ export function renderRecoveryWorkbenchMarkup(workbench) {
                   ` : ''}
                 </div>
                 <div class="library-recovery-item-actions">
-                  ${document.loadedMatch ? `<button type="button" class="library-recovery-btn icon-only-btn" data-recovery-match-id="${escapeHtml(document.id)}" title="Match Existing" aria-label="Match Existing"><span class="material-icons-round">link</span></button>` : ''}
-                  <button type="button" class="library-recovery-btn secondary icon-only-btn" data-relink-document-id="${escapeHtml(document.id)}" title="Relink Source" aria-label="Relink Source"><span class="material-icons-round">upload_file</span></button>
+                  ${document.loadedMatch ? `<button type="button" class="library-recovery-btn icon-only-btn" data-recovery-match-id="${escapeHtml(document.id)}" title="${escapeHtml(t('recovery.matchExisting'))}" aria-label="${escapeHtml(t('recovery.matchExisting'))}"><span class="material-icons-round">link</span></button>` : ''}
+                  <button type="button" class="library-recovery-btn secondary icon-only-btn" data-relink-document-id="${escapeHtml(document.id)}" title="${escapeHtml(t('recovery.relinkSource'))}" aria-label="${escapeHtml(t('recovery.relinkSource'))}"><span class="material-icons-round">upload_file</span></button>
                 </div>
               </div>
             `).join('')}
@@ -209,8 +210,8 @@ export function createRecoveryWorkbenchController({
                 name: document.name
             })),
             message: matchedCount > 0
-                ? `Recovered ${matched.map((entry) => `"${entry.name}"`).join(', ')}.`
-                : 'No automatic relink candidates were found.'
+                ? t('recovery.autoMatchedNames', { names: matched.map((entry) => `"${entry.name}"`).join(', ') })
+                : t('recovery.noCandidates')
         });
 
         if (matchedCount > 0) {
@@ -220,20 +221,20 @@ export function createRecoveryWorkbenchController({
         if (notifyUser) {
             if (matchedCount > 0) {
                 notify?.({
-                    title: 'Auto Match Complete',
-                    message: `Automatically relinked ${matchedCount} restored source ${matchedCount === 1 ? 'file' : 'files'} using documents already loaded in the workspace.`,
+                    title: t('recovery.autoMatchDone.title'),
+                    message: t(matchedCount === 1 ? 'recovery.autoMatchDone.message.one' : 'recovery.autoMatchDone.message.other', { count: matchedCount }),
                     level: 'success',
                     actions: [
-                        { label: 'Validate', onClick: () => showValidation?.() }
+                        { label: t('recovery.validate'), onClick: () => showValidation?.() }
                     ]
                 });
             } else {
                 notify?.({
-                    title: 'Auto Match',
-                    message: 'No automatic relink candidates were found among the documents already loaded in this workspace.',
+                    title: t('recovery.autoMatch.title'),
+                    message: t('recovery.autoMatch.noneLoaded'),
                     level: 'warning',
                     actions: [
-                        { label: 'Import Sources', onClick: () => promptBulkRelink?.() }
+                        { label: t('recovery.importSources'), onClick: () => promptBulkRelink?.() }
                     ]
                 });
             }
@@ -268,15 +269,15 @@ export function createRecoveryWorkbenchController({
             remaining: workbench.documents
                 .filter((item) => item.id !== document.id)
                 .map((item) => ({ id: item.id, name: item.name })),
-            message: `Linked "${document.name}" to "${document.loadedMatch.name}".`
+            message: t('recovery.linkedPair', { name: document.name, match: document.loadedMatch.name })
         });
         finalizeRelink();
         notify?.({
-            title: 'Source Relinked',
-            message: `"${document.name}" is now linked to "${document.loadedMatch.name}".`,
+            title: t('recovery.relinked.title'),
+            message: t('recovery.relinked.message', { name: document.name, match: document.loadedMatch.name }),
             level: 'success',
             actions: [
-                { label: 'Validate', onClick: () => showValidation?.() }
+                { label: t('recovery.validate'), onClick: () => showValidation?.() }
             ]
         });
         return true;
@@ -290,11 +291,16 @@ export function createRecoveryWorkbenchController({
             updateSummary({
                 matched: [],
                 remaining: [],
-                message: 'All saved source documents are linked and ready.'
+                message: t('recovery.allReady')
             });
             notify?.({
-                title: 'Links Ready',
-                message: `All saved source documents are linked. ${workbench.readyCards} of ${workbench.totalCards} cards and ${workbench.readyHighlights} of ${workbench.totalHighlights} highlights are ready for source navigation.`,
+                title: t('recovery.linksReady.title'),
+                message: t('recovery.linksReady.message', {
+                    readyCards: workbench.readyCards,
+                    totalCards: workbench.totalCards,
+                    readyHighlights: workbench.readyHighlights,
+                    totalHighlights: workbench.totalHighlights
+                }),
                 level: 'success',
                 duration: 5200
             });
@@ -302,13 +308,18 @@ export function createRecoveryWorkbenchController({
         }
 
         notify?.({
-            title: 'Links Incomplete',
-            message: `${unresolvedDocumentCount} source ${unresolvedDocumentCount === 1 ? 'file is' : 'files are'} still missing. ${workbench.readyMatches} automatic ${workbench.readyMatches === 1 ? 'match is' : 'matches are'} ready, and ${workbench.unresolvedCards.length} cards plus ${workbench.unresolvedHighlights.length} highlights still need recovery.`,
+            title: t('recovery.linksIncomplete.title'),
+            message: t('recovery.linksIncomplete.message', {
+                count: unresolvedDocumentCount,
+                readyMatches: workbench.readyMatches,
+                cards: workbench.unresolvedCards.length,
+                highlights: workbench.unresolvedHighlights.length
+            }),
             level: 'warning',
             duration: 6200,
             actions: [
-                { label: 'Auto Match', onClick: () => attemptAutoRelinkRecoveredDocuments({ notifyUser: true }) },
-                { label: 'Import Sources', onClick: () => promptBulkRelink?.() }
+                { label: t('recovery.autoMatch'), onClick: () => attemptAutoRelinkRecoveredDocuments({ notifyUser: true }) },
+                { label: t('recovery.importSources'), onClick: () => promptBulkRelink?.() }
             ]
         });
         return workbench;

@@ -1,5 +1,6 @@
 import { emitAppNotification } from '../ui/app-notifications.js';
 import { modalManager } from '../ui/modal-manager.js';
+import { t } from '../i18n/index.js';
 import { getAppContext, setAppService, updateCurrentBook } from './app-context.js';
 import { chooseDocumentTarget } from './document-relink.js';
 import { buildDocumentRemovalPrompt, reorderFilesById } from './file-list-helpers.js';
@@ -126,8 +127,8 @@ export function createWorkspaceDocumentsController({
         if ((pendingDocumentImport?.id || decision.mode === 'relink-only') && !targetDocument) {
             const relinkTargetName = pendingDocumentImport?.name || file.name;
             emitAppNotification({
-                title: 'Relink Skipped',
-                message: `"${file.name}" does not match the expected file type for "${relinkTargetName}". Please choose a compatible source file.`,
+                title: t('notify.relinkSkipped.title'),
+                message: t('notify.relinkSkipped.message', { name: file.name, target: relinkTargetName }),
                 level: 'warning'
             });
             return null;
@@ -169,14 +170,14 @@ export function createWorkspaceDocumentsController({
         importedFileData.push(fileData);
         if (decision.mode === 'replace') {
             emitAppNotification({
-                title: 'Document Replaced',
-                message: `"${file.name}" replaced the existing workspace source while preserving linked notes and cards.`,
+                title: t('notify.documentReplaced.title'),
+                message: t('notify.documentReplaced.message', { name: file.name }),
                 level: 'success'
             });
         } else if (decision.mode === 'relink-only') {
             emitAppNotification({
-                title: 'Source Relinked',
-                message: `"${file.name}" was imported as a recovery source for saved links.`,
+                title: t('notify.sourceRelinked.title'),
+                message: t('notify.sourceRelinked.message', { name: file.name }),
                 level: 'success'
             });
         }
@@ -204,8 +205,8 @@ export function createWorkspaceDocumentsController({
             } catch (error) {
                 logger?.warn?.('[workspace-documents] Failed to import file:', file?.name, error);
                 emitAppNotification({
-                    title: 'Import Failed',
-                    message: `"${file?.name || 'Unknown file'}" could not be imported. The remaining files were still processed.`,
+                    title: t('notify.importFailed.title'),
+                    message: t('notify.importFailed.message', { name: file?.name || 'Unknown file' }),
                     level: 'error'
                 });
                 continue;
@@ -228,8 +229,8 @@ export function createWorkspaceDocumentsController({
             } catch (error) {
                 logger?.warn?.('[workspace-documents] Failed to open imported file:', importedFileData[0]?.name, error);
                 emitAppNotification({
-                    title: 'Open Failed',
-                    message: `"${importedFileData[0]?.name || 'Document'}" was imported but could not be opened.`,
+                    title: t('notify.openFailed.title'),
+                    message: t('notify.openFailed.message', { name: importedFileData[0]?.name || 'Document' }),
                     level: 'error'
                 });
             }
@@ -296,9 +297,9 @@ export function createWorkspaceDocumentsController({
         const { cardCount, highlightCount, referenceCount } = getDocumentReferenceDetails(fileId);
         const isCurrentDocument = appContext.currentBook?.id === fileId;
         const confirmed = await modalManager.confirm({
-            title: 'Remove Document',
+            title: t('docs.removeTitle'),
             message: buildDocumentRemovalPrompt({ name: fileToRemove.name, cardCount, highlightCount, isCurrentDocument }),
-            confirmLabel: 'Remove',
+            confirmLabel: t('common.remove'),
             danger: true
         });
 
@@ -326,10 +327,10 @@ export function createWorkspaceDocumentsController({
         }
 
         emitAppNotification({
-            title: 'Document Removed',
+            title: t('notify.documentRemoved.title'),
             message: referenceCount > 0
-                ? `"${removedFile.name}" was removed from the active library list. Linked cards and highlights were preserved and now need relinking before source navigation works again.`
-                : `"${removedFile.name}" was removed from the active library list.`,
+                ? t('notify.documentRemoved.linked', { name: removedFile.name })
+                : t('notify.documentRemoved.simple', { name: removedFile.name }),
             level: 'success'
         });
     }

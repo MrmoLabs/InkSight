@@ -1,5 +1,6 @@
 import { getAppContext } from './app-context.js';
 import { emitAppNotification } from '../ui/app-notifications.js';
+import { t } from '../i18n/index.js';
 
 function sanitizeFileNameSegment(value, fallback = 'workspace') {
     const normalized = String(value || '').trim().replace(/[<>:"/\\|?*\u0000-\u001F]+/g, '-');
@@ -331,8 +332,8 @@ export function exportWorkspaceArtifact({
     const counts = countWorkspaceContent(appContext);
     if (counts.documents === 0 && counts.cards === 0 && counts.highlights === 0) {
         notify?.({
-            title: 'Export Skipped',
-            message: 'There is no workspace content to export yet.',
+            title: t('export.skipped.title'),
+            message: t('export.skipped.message'),
             level: 'warning'
         });
         return false;
@@ -342,17 +343,17 @@ export function exportWorkspaceArtifact({
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const artifactBuilders = {
         outline: {
-            label: 'Markdown Outline',
+            label: t('export.outline'),
             fileSuffix: 'outline',
             build: () => buildMarkdownOutline(appContext)
         },
         citations: {
-            label: 'Citation List',
+            label: t('export.citations'),
             fileSuffix: 'citations',
             build: () => buildCitationList(appContext)
         },
         'notes-package': {
-            label: 'Reading Notes Package',
+            label: t('export.notesPackage'),
             fileSuffix: 'notes-package',
             build: () => buildReadingNotesPackage(appContext)
         }
@@ -366,8 +367,8 @@ export function exportWorkspaceArtifact({
     const unsavedImageCards = getUnsavedImageCards(appContext);
     if (unsavedImageCards.length) {
         notify?.({
-            title: 'Save Project Before Export',
-            message: 'This Markdown export includes image cards that have not been saved into the project folder yet. Save the project first, then export again.',
+            title: t('export.saveFirst.title'),
+            message: t('export.saveFirst.message'),
             level: 'warning'
         });
         return false;
@@ -375,8 +376,8 @@ export function exportWorkspaceArtifact({
 
     downloadMarkdown(artifact.build(), `${projectName}-${artifact.fileSuffix}-${timestamp}`);
     notify?.({
-        title: 'Export Ready',
-        message: `${artifact.label} was exported as a UTF-8 Markdown file.`,
+        title: t('export.ready.title'),
+        message: t('export.ready.message', { label: artifact.label }),
         level: 'success'
     });
     return true;

@@ -13,7 +13,9 @@ const THEME_OPTIONS = [
     { value: 'soft', labelKey: 'theme.soft' },
     { value: 'retro', labelKey: 'theme.retro' },
     { value: 'dark', labelKey: 'theme.dark' },
-    { value: 'starry', labelKey: 'theme.starry' }
+    { value: 'starry', labelKey: 'theme.starry' },
+    { value: 'yorha-light', labelKey: 'theme.yorhaLight' },
+    { value: 'yorha-dark', labelKey: 'theme.yorhaDark' }
 ];
 
 const SETTINGS_SECTIONS = [

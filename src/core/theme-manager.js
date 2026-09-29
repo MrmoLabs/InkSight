@@ -5,7 +5,7 @@
 
 class ThemeManager {
     constructor() {
-        this.currentTheme = 'default'; // default, colorful, soft, retro, dark, starry
+        this.currentTheme = 'default'; // default, colorful, soft, retro, dark, starry, yorha-light, yorha-dark (legacy "yorha" aliases to dark)
         this.listeners = new Set();
         this.STORAGE_KEY = 'inksight:theme';
         this.init();

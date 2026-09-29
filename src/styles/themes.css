@@ -278,6 +278,120 @@
 }
 
 /* ============================================================
+   yorha — NieR:Automata industrial terminal, light & dark pairs.
+   Charcoal (yorha / yorha-dark) and sand (yorha-light) variants
+   of the portable --yorha-* palette: zero radius, hairline
+   elevation, single amber accent, snappy motion. Shared geometry
+   tokens live in the ^="yorha" block; per-variant chrome values
+   ride on --yorha-hairline / --yorha-overlay / --yorha-grid-ink.
+   ============================================================ */
+:root[data-theme^="yorha"] {
+  --font-mono: ui-monospace, 'Cascadia Mono', SFMono-Regular, Menlo, Consolas, monospace;
+  /* Industrial headings: mono display face for brand/headers */
+  --font-display: var(--font-mono);
+
+  /* Strict geometry tokens: radius 0, hairline elevation, <=150ms */
+  --radius-xs: 0;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --motion-fast: 100ms;
+  --motion-base: 120ms;
+  --motion-slow: 150ms;
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+
+  --highlight-color: rgba(229, 141, 40, 0.3);
+}
+
+/* yorha / yorha-dark — charcoal chrome, sand text */
+:root[data-theme="yorha"],
+:root[data-theme="yorha-dark"] {
+  --paper-canvas: #3f3c36;
+  --paper-surface: #4e4b42;
+  --paper-raised: #57534a;
+  --paper-hover: #565248;
+  --paper-active: #615d52;
+
+  --ink-strong: #f0ede2;
+  --ink-body: #dcd8c8;
+  --ink-muted: #a09c8d;
+  --ink-faint: #7b766b;
+  --ink-inverse: #3f3c36;
+
+  --line: #5f5b52;
+  --line-strong: #747065;
+
+  --brand: #e58d28;
+  --brand-strong: #f29e3a;
+  --brand-soft: rgba(229, 141, 40, 0.16);
+  --brand-soft-strong: rgba(229, 141, 40, 0.3);
+
+  --gold: #e0a94e;
+  --gold-strong: #ecb96f;
+  --gold-soft: rgba(224, 169, 78, 0.14);
+  --gold-soft-strong: rgba(224, 169, 78, 0.24);
+
+  --ok: #8fad63;
+  --warn: #e0a94e;
+  --danger: #e4573c;
+
+  --reader-bg: #4e4b42;
+
+  --yorha-hairline: rgba(233, 229, 214, 0.35);
+  --yorha-overlay: rgba(20, 18, 14, 0.72);
+  --yorha-grid-ink: rgba(220, 216, 200, 0.05);
+  --yorha-page-grid-ink: rgba(220, 216, 200, 0.035);
+
+  --shadow-1: 0 0 0 0.5px rgba(233, 229, 214, 0.22);
+  --shadow-2: 0 0 0 0.5px var(--yorha-hairline);
+  --shadow-3: 0 0 0 0.5px var(--yorha-hairline);
+}
+
+/* yorha-light — sand paper, charcoal ink */
+:root[data-theme="yorha-light"] {
+  --paper-canvas: #bab5a1;
+  --paper-surface: #cdcabe;
+  --paper-raised: #d8d4c6;
+  --paper-hover: #c2bdae;
+  --paper-active: #b5b09e;
+
+  --ink-strong: #35322c;
+  --ink-body: #4e4b42;
+  --ink-muted: #747065;
+  --ink-faint: #8b8576;
+  --ink-inverse: #dcd8c8;
+
+  --line: #a39e8d;
+  --line-strong: #4e4b42;
+
+  --brand: #c17b1a;
+  --brand-strong: #a96d10;
+  --brand-soft: rgba(193, 123, 26, 0.16);
+  --brand-soft-strong: rgba(193, 123, 26, 0.28);
+
+  --gold: #8f5f0f;
+  --gold-strong: #7c510c;
+  --gold-soft: rgba(143, 95, 15, 0.12);
+  --gold-soft-strong: rgba(143, 95, 15, 0.22);
+
+  --ok: #5c7a45;
+  --warn: #8f5f0f;
+  --danger: #b33927;
+
+  --reader-bg: #c6c1b0;
+
+  --yorha-hairline: rgba(63, 60, 54, 0.55);
+  --yorha-overlay: rgba(53, 50, 44, 0.55);
+  --yorha-grid-ink: rgba(78, 75, 66, 0.07);
+  --yorha-page-grid-ink: rgba(78, 75, 66, 0.045);
+
+  --shadow-1: 0 0 0 0.5px rgba(63, 60, 54, 0.35);
+  --shadow-2: 0 0 0 0.5px var(--yorha-hairline);
+  --shadow-3: 0 0 0 0.5px var(--yorha-hairline);
+}
+
+/* ============================================================
    Legacy variable mapping — every name that component CSS
    already consumes, pointed at the token layer above.
    ============================================================ */
@@ -287,7 +401,8 @@
 :root[data-theme="soft"],
 :root[data-theme="retro"],
 :root[data-theme="dark"],
-:root[data-theme="starry"] {
+:root[data-theme="starry"],
+:root[data-theme^="yorha"] {
   /* App background + shell surfaces */
   --app-bg: var(--paper-canvas);
   --app-bg-start: var(--paper-canvas);
@@ -377,13 +492,16 @@ body,
 :root[data-theme="dark"] .pdf-page-wrapper,
 :root[data-theme="dark"] #viewer .page,
 :root[data-theme="starry"] .pdf-page-wrapper,
-:root[data-theme="starry"] #viewer .page {
+:root[data-theme="starry"] #viewer .page,
+:root[data-theme="yorha-dark"] .pdf-page-wrapper,
+:root[data-theme="yorha-dark"] #viewer .page {
   background-color: #ffffff !important;
   filter: invert(0.9) hue-rotate(180deg);
 }
 
 :root[data-theme="dark"] .viewer,
-:root[data-theme="starry"] .viewer {
+:root[data-theme="starry"] .viewer,
+:root[data-theme="yorha-dark"] .viewer {
   background-color: var(--paper-canvas) !important;
 }
 
@@ -396,4 +514,243 @@ body,
 :root[data-theme="dark"] .mindmap-container,
 :root[data-theme="starry"] .mindmap-container {
   background-image: radial-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px) !important;
+}
+/* ============================================================
+   yorha — strict-geometry enforcement & industrial flavor
+   The token layer flattens --radius-* and --shadow-*; this block
+   removes the hardcoded radius/blur/soft-shadow that component
+   CSS still carries, then re-issues sanctioned hairlines.
+   ============================================================ */
+:root[data-theme^="yorha"] *,
+:root[data-theme^="yorha"] *::before,
+:root[data-theme^="yorha"] *::after {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Sanctioned hairline elevation replaces soft shadows on floats */
+:root[data-theme^="yorha"] .toolbar-menu-popover,
+:root[data-theme^="yorha"] .modal-content,
+:root[data-theme^="yorha"] .app-notification,
+:root[data-theme^="yorha"] .save-status-indicator.visible,
+:root[data-theme^="yorha"] .highlighter-panel,
+:root[data-theme^="yorha"] .selection-mode-floating,
+:root[data-theme^="yorha"] .pdf-page-wrapper,
+:root[data-theme^="yorha"] #viewer .page {
+  box-shadow: 0 0 0 0.5px var(--yorha-hairline) !important;
+}
+
+:root[data-theme^="yorha"] .modal-overlay {
+  background-color: var(--yorha-overlay) !important;
+  backdrop-filter: none !important;
+}
+
+/* Registration grid: 24px square lines instead of dots */
+:root[data-theme^="yorha"] .mindmap-container {
+  background-image: linear-gradient(var(--yorha-grid-ink) 1px, transparent 1px),
+    linear-gradient(90deg, var(--yorha-grid-ink) 1px, transparent 1px) !important;
+  background-size: 24px 24px !important;
+}
+
+/* Page-level registration grid, very faint */
+:root[data-theme^="yorha"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: linear-gradient(var(--yorha-page-grid-ink) 1px, transparent 1px),
+    linear-gradient(90deg, var(--yorha-page-grid-ink) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Data is monospace */
+:root[data-theme^="yorha"] #page-info,
+:root[data-theme^="yorha"] #mobile-page-info,
+:root[data-theme^="yorha"] #mobile-context-page-info,
+:root[data-theme^="yorha"] .file-item-meta,
+:root[data-theme^="yorha"] .save-status-indicator,
+:root[data-theme^="yorha"] .library-project-snapshot-copy,
+:root[data-theme^="yorha"] .project-home-list-copy .text-single-line,
+:root[data-theme^="yorha"] .workspace-search-result-meta {
+  font-family: var(--font-mono);
+}
+
+/* Industrial tags on panel headers */
+:root[data-theme^="yorha"] .panel-title-text::before,
+:root[data-theme^="yorha"] .workspace-search-group-title::before {
+  content: "[ + ] ";
+  color: var(--brand);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+/* Section headings get the slash marker */
+:root[data-theme^="yorha"] .project-home-section h3::before {
+  content: "// ";
+  color: var(--brand);
+  font-weight: 700;
+}
+
+/* Hero icon block: charcoal well with amber glyph, not an amber slab */
+:root[data-theme^="yorha"] .project-home-icon {
+  background: var(--paper-canvas);
+  border: 1px solid var(--line-strong);
+  color: var(--brand);
+}
+
+/* Primary actions: inverted sand fill, amber announces on hover */
+:root[data-theme^="yorha"] .project-home-btn.primary,
+:root[data-theme^="yorha"] .modal-btn-primary:not(.danger) {
+  background: var(--ink-body);
+  border-color: var(--ink-body);
+  color: var(--ink-inverse);
+}
+
+:root[data-theme^="yorha"] .project-home-btn.primary:hover,
+:root[data-theme^="yorha"] .modal-btn-primary:not(.danger):hover {
+  background: var(--ink-strong);
+  border-color: var(--brand);
+  color: var(--ink-inverse);
+}
+
+/* Active workspace mode: amber text + soft tint + left accent bar */
+:root[data-theme^="yorha"] .workspace-mode-btn {
+  position: relative;
+}
+
+:root[data-theme^="yorha"] .workspace-mode-btn.active,
+:root[data-theme^="yorha"] .workspace-mode-btn[aria-selected="true"] {
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+}
+
+:root[data-theme^="yorha"] .workspace-mode-btn.active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  background: var(--brand);
+}
+
+/* Outlined icon glyphs: hollow strokes, clearly distinct from the
+   filled default set — the yorha theme's icon face. */
+:root[data-theme^="yorha"] .material-icons-round {
+  font-family: "Material Icons Outlined";
+}
+
+/* Icon scale: compact terminal glyphs, dense chrome */
+:root[data-theme^="yorha"] .icon-btn .material-icons-round {
+  font-size: 20px;
+}
+
+:root[data-theme^="yorha"] .icon-btn.small .material-icons-round,
+:root[data-theme^="yorha"] .file-item-action-btn .material-icons-round,
+:root[data-theme^="yorha"] .toolbar-menu-item .material-icons-round {
+  font-size: 18px;
+}
+
+/* Icon color hierarchy: muted at rest, ink on hover, amber when active */
+:root[data-theme^="yorha"] .icon-btn {
+  color: var(--ink-muted);
+}
+
+:root[data-theme^="yorha"] .icon-btn:hover {
+  color: var(--ink-strong);
+}
+
+/* Empty states: charcoal well with an amber glyph */
+:root[data-theme^="yorha"] .empty-state .material-icons-round,
+:root[data-theme^="yorha"] .mindmap-placeholder .material-icons-round {
+  color: var(--brand) !important;
+  background: var(--paper-canvas);
+  border: 1px solid var(--line-strong);
+  padding: 12px;
+}
+
+/* List & action icon wells: charcoal tile with hairline frame */
+:root[data-theme^="yorha"] .project-home-list-icon,
+:root[data-theme^="yorha"] .project-home-card-icon {
+  background: var(--paper-canvas);
+  border: 1px solid var(--line);
+  color: var(--ink-muted);
+}
+
+/* Icon buttons: hover is a fill/outline change, never a lift */
+:root[data-theme^="yorha"] .icon-btn {
+  border: 1px solid transparent;
+  transition: background-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out);
+}
+
+:root[data-theme^="yorha"] .icon-btn:hover {
+  background-color: var(--paper-hover);
+  color: var(--ink-strong);
+  border-color: var(--line-strong);
+}
+
+:root[data-theme^="yorha"] .icon-btn.active {
+  background-color: var(--brand-soft-strong);
+  border-color: var(--brand);
+  color: var(--brand-strong);
+}
+
+/* List rows and cards: hairline borders, amber announce on hover */
+:root[data-theme^="yorha"] .project-home-list-item,
+:root[data-theme^="yorha"] .project-home-btn,
+:root[data-theme^="yorha"] .workspace-card {
+  border: 1px solid var(--line);
+}
+
+:root[data-theme^="yorha"] .project-home-list-item:hover,
+:root[data-theme^="yorha"] .project-home-btn:hover {
+  border-color: var(--brand);
+}
+
+/* Wordmark: uppercase mono with terminal tracking */
+:root[data-theme^="yorha"] .brand-wordmark {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Hero heading follows the mono display face */
+:root[data-theme^="yorha"] .project-home-copy h2 {
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+}
+
+/* Uppercase labels with terminal tracking */
+:root[data-theme^="yorha"] .panel-title-text,
+:root[data-theme^="yorha"] .toolbar-menu-label,
+:root[data-theme^="yorha"] .workspace-search-group-title,
+:root[data-theme^="yorha"] .mode-label,
+:root[data-theme^="yorha"] .project-home-btn-label {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Focus stays visible: 1px amber outline; amber ::selection */
+:root[data-theme^="yorha"] :focus-visible {
+  outline: 1px solid var(--brand) !important;
+  outline-offset: 1px;
+}
+
+:root[data-theme^="yorha"] ::selection {
+  background: var(--brand);
+  color: var(--ink-inverse);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme^="yorha"] *,
+  :root[data-theme^="yorha"] *::before,
+  :root[data-theme^="yorha"] *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+  }
 }

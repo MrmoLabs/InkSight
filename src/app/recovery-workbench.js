@@ -119,11 +119,11 @@ export function renderRecoveryWorkbenchMarkup(workbench) {
           <div class="library-recovery-stats">
             <span><span class="material-icons-round">sticky_note_2</span>${workbench.unresolvedCards.length}</span>
             <span><span class="material-icons-round">format_quote</span>${workbench.unresolvedHighlights.length}</span>
-            <span><span class="material-icons-round">auto_awesome</span>${workbench.readyMatches}</span>
+            <span><span class="material-icons-round">merge_type</span>${workbench.readyMatches}</span>
             <span><span class="material-icons-round">description</span>${workbench.totalDocuments}</span>
           </div>
           <div class="library-recovery-actions icon-row">
-            <button type="button" class="library-recovery-secondary-btn icon-only-btn" data-recovery-action="auto" title="${escapeHtml(t('recovery.autoMatch'))}" aria-label="${escapeHtml(t('recovery.autoMatch'))}"><span class="material-icons-round">auto_awesome</span></button>
+            <button type="button" class="library-recovery-secondary-btn icon-only-btn" data-recovery-action="auto" title="${escapeHtml(t('recovery.autoMatch'))}" aria-label="${escapeHtml(t('recovery.autoMatch'))}"><span class="material-icons-round">merge_type</span></button>
             <button type="button" class="library-recovery-secondary-btn icon-only-btn" data-recovery-action="bulk" title="${escapeHtml(t('recovery.importSources'))}" aria-label="${escapeHtml(t('recovery.importSources'))}"><span class="material-icons-round">upload_file</span></button>
             <button type="button" class="library-recovery-secondary-btn icon-only-btn" data-recovery-action="validate" title="${escapeHtml(t('recovery.validateLinks'))}" aria-label="${escapeHtml(t('recovery.validateLinks'))}"><span class="material-icons-round">task_alt</span></button>
           </div>

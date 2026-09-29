@@ -8,6 +8,24 @@
   font-display: block;
   src: url("./material-icons-round.woff2") format("woff2");
 }
+/* Sharp variant: loaded lazily, only when a theme (yorha) remaps
+   .material-icons-round to this family. */
+@font-face {
+  font-family: "Material Icons Sharp";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("./material-icons-sharp.woff2") format("woff2");
+}
+/* Outlined variant: hollow-stroke glyphs, the yorha theme's
+   primary icon face — visibly distinct from the filled default. */
+@font-face {
+  font-family: "Material Icons Outlined";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("./material-icons-outlined.woff2") format("woff2");
+}
 .material-icons-round {
   font-family: "Material Icons Round";
   font-weight: normal;

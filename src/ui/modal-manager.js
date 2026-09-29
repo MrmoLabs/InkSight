@@ -1,3 +1,5 @@
+import { t } from '../i18n/index.js';
+
 export class ModalManager {
     constructor() {
         this.createModal();
@@ -63,7 +65,9 @@ export class ModalManager {
      * confirm button is pressed; cancel, backdrop click and Escape all
      * resolve false.
      */
-    confirm({ title = '', message = '', confirmLabel = 'Confirm', cancelLabel = 'Cancel', danger = false } = {}) {
+    confirm({ title = '', message = '', confirmLabel, cancelLabel, danger = false } = {}) {
+        confirmLabel = confirmLabel ?? t('common.confirm');
+        cancelLabel = cancelLabel ?? t('common.cancel');
         return new Promise((resolve) => {
             this.body.innerHTML = '';
 
@@ -122,7 +126,9 @@ export class ModalManager {
      * Single-line text input dialog. Resolves the trimmed input (possibly an
      * empty string) on confirm, or null on cancel.
      */
-    prompt({ title = '', message = '', placeholder = '', initialValue = '', confirmLabel = 'OK', cancelLabel = 'Cancel' } = {}) {
+    prompt({ title = '', message = '', placeholder = '', initialValue = '', confirmLabel, cancelLabel } = {}) {
+        confirmLabel = confirmLabel ?? t('common.confirm');
+        cancelLabel = cancelLabel ?? t('common.cancel');
         return new Promise((resolve) => {
             this.body.innerHTML = '';
 

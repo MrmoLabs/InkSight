@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
 const { assertSafePathSegment, resolvePathWithin } = require('./path-security.cjs');
+const { buildAiConfigWrite, readAiConfigFile } = require('./ai-config-storage.cjs');
 
 const DEV_RENDERER_URL = 'http://localhost:5173/';
 
@@ -480,16 +481,6 @@ handleTrustedIpc('find-save-by-md5', async (event, targetMd5) => {
 // --- AI config: OS-encrypted credential storage (safeStorage) ---
 
 const AI_CONFIG_FILE = 'ai-config.bin';
-const AI_CONFIG_FIELDS = ['provider', 'protocol', 'baseUrl', 'apiKey', 'model'];
-
-const sanitizeAiConfig = (value) => {
-    const source = value && typeof value === 'object' ? value : {};
-    const config = {};
-    for (const field of AI_CONFIG_FIELDS) {
-        config[field] = typeof source[field] === 'string' ? source[field] : '';
-    }
-    return config;
-};
 
 handleTrustedIpc('ai-config-load', async () => {
     try {
@@ -498,10 +489,11 @@ handleTrustedIpc('ai-config-load', async () => {
             return { success: true, config: null, encrypted: safeStorage.isEncryptionAvailable() };
         }
         const raw = fs.readFileSync(filePath);
-        if (!safeStorage.isEncryptionAvailable()) {
-            return { success: true, config: sanitizeAiConfig(JSON.parse(raw.toString('utf-8'))), encrypted: false };
+        const stored = readAiConfigFile(raw, safeStorage);
+        if (stored.migrationBytes) {
+            writeFileAtomic(filePath, stored.migrationBytes);
         }
-        return { success: true, config: sanitizeAiConfig(JSON.parse(safeStorage.decryptString(raw))), encrypted: true };
+        return { success: true, config: stored.config, encrypted: stored.encrypted };
     } catch (error) {
         console.error('IPC ai-config-load error:', error);
         return { success: false, error: error.message, config: null };
@@ -512,19 +504,13 @@ handleTrustedIpc('ai-config-save', async (event, config) => {
     try {
         const filePath = path.join(app.getPath('userData'), AI_CONFIG_FILE);
         ensureDir(path.dirname(filePath));
-        const sanitizedConfig = sanitizeAiConfig(config);
-        const json = JSON.stringify(sanitizedConfig);
-        const encrypted = safeStorage.isEncryptionAvailable();
-        if (!encrypted && sanitizedConfig.apiKey) {
-            return {
-                success: false,
-                encrypted: false,
-                persisted: false,
-                error: 'OS encryption is unavailable; API keys are kept for this session only.'
-            };
+        const write = buildAiConfigWrite(config, safeStorage);
+        if (!write.success) {
+            return write;
         }
-        writeFileAtomic(filePath, encrypted ? safeStorage.encryptString(json) : Buffer.from(json, 'utf-8'));
-        return { success: true, encrypted, persisted: true, apiKeyPersisted: encrypted && Boolean(sanitizedConfig.apiKey) };
+        writeFileAtomic(filePath, write.bytes);
+        const { bytes: _bytes, ...result } = write;
+        return result;
     } catch (error) {
         console.error('IPC ai-config-save error:', error);
         return { success: false, error: error.message };

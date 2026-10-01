@@ -32,6 +32,8 @@ Status: completed.
 - Keep an entered key available for the current session when encryption is not
   available; show a clear settings hint that the key cannot be safely saved.
 - Preserve non-secret provider settings and allow clearing an existing key.
+- Migrate legacy plaintext configuration to encrypted storage when OS
+  encryption becomes available again.
 - Test the encrypted, unavailable, migration, and clear-key paths.
 
 ### Batch 3: Shared Safe Rendering

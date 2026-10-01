@@ -19,7 +19,11 @@ import { buildWorkspaceSearchIndex, queryWorkspaceSearch } from './app/search-in
 import { createSearchController } from './app/search-controller.js';
 import { createLogger } from './core/logger.js';
 import { buildProjectHomeModel, renderProjectHome as renderProjectHomeMarkup } from './app/project-home.js';
+import { createReaderAiController } from './app/reader-ai-controller.js';
 import { initializeI18n, LOCALE_CHANGED_EVENT, t } from './i18n/index.js';
+import { aiConfigManager } from './core/ai-config-manager.js';
+import { chatComplete } from './core/ai-client.js';
+import { modalManager } from './ui/modal-manager.js';
 
 const logger = createLogger('Main');
 
@@ -36,6 +40,34 @@ import { APP_EVENTS } from './core/event-names.js';
 setAppService('cardSystem', cardSystem);
 setAppService('highlightManager', highlightManager);
 setAppService('documentManager', documentManager);
+
+const readerAiController = createReaderAiController({
+    getPassage: () => {
+        const context = getAppContext();
+        const sourceId = context.currentBook?.id;
+        if (!sourceId) {
+            return null;
+        }
+
+        const highlights = context.highlightManager?.getHighlightsBySource(sourceId) ?? [];
+        return [...highlights]
+            .filter((highlight) => highlight.text?.trim())
+            .sort((left, right) => Date.parse(left.createdAt) - Date.parse(right.createdAt))
+            .at(-1) ?? null;
+    },
+    aiConfigManager,
+    chatComplete,
+    confirmSend: ({ provider, endpoint, model, passage }) => modalManager.confirm({
+        title: t('readerAI.reviewTitle'),
+        message: `${t('readerAI.reviewDetails', { provider, endpoint, model })}\n${passage}`,
+        confirmLabel: t('readerAI.send'),
+        cancelLabel: t('common.cancel')
+    }),
+    showResult: ({ action, answer }) => modalManager.showText(
+        `${t('readerAI.resultTitle', { action: t(`readerAI.${action}`) })}\n\n${answer}`
+    ),
+    notify: emitAppNotification
+});
 
 // State
 const state = {
@@ -637,8 +669,19 @@ function setupFloatingSelectionToolbar() {
 
     dragHandle.addEventListener('pointerdown', startDrag);
 
+    const handleReaderAiAction = (event) => {
+        const actionButton = event.target.closest?.('[data-reader-ai-action]');
+        if (!actionButton) {
+            return;
+        }
+        toolbar.querySelector('#reader-ai-menu')?.removeAttribute('open');
+        void readerAiController.run(actionButton.dataset.readerAiAction);
+    };
+    toolbar.addEventListener('click', handleReaderAiAction);
+
     registerCleanup(() => {
         dragHandle.removeEventListener('pointerdown', startDrag);
+        toolbar.removeEventListener('click', handleReaderAiAction);
         stopDrag();
     });
 

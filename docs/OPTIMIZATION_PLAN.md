@@ -81,6 +81,10 @@ CSS. The test suite passes, and the production preview opens successfully.
 
 ### Reader AI
 
+Status: explain and summarize actions implemented in the floating reading
+toolbar. Every request requires confirmation after showing provider, endpoint,
+model, and the exact excerpt. Results remain temporary in a text dialog.
+
 - Reuse the existing provider configuration and AI client.
 - Offer explicit actions for explain, summarize, and create-map-from-selection.
 - Send only the selected passage and the user's chosen surrounding context.
@@ -90,10 +94,11 @@ CSS. The test suite passes, and the production preview opens successfully.
   passage.
 
 Initial implementation scope: provide explain and summarize actions for the
-most recently selected/highlighted passage. Show a confirmation with the exact
-passage, provider, endpoint, and model for every request. Keep answers temporary
-in the result dialog; defer map creation and saved AI notes until their source
-anchor and graph insertion behavior can be implemented together.
+most recently selected/highlighted passage. Send only that passage, without
+surrounding document text. Show a confirmation with the exact passage,
+provider, endpoint, and model for every request. Keep answers temporary in the
+result dialog; defer map creation and saved AI notes until their source anchor
+and graph insertion behavior can be implemented together.
 
 ### Multi-Device Sync
 

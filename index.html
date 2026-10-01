@@ -227,7 +227,20 @@
           <button id="highlighter-mode" class="icon-btn mode-btn" data-mode="highlighter" title="Highlighter" data-i18n-title="tool.highlighter">
             <span class="material-icons-round">edit</span>
           </button>
-        </div>
+          <details id="reader-ai-menu" class="toolbar-menu selection-ai-menu">
+            <summary class="icon-btn toolbar-menu-trigger" title="Ask AI about the latest passage" aria-label="Ask AI about the latest passage" data-i18n-title="readerAI.menu" data-i18n-aria-label="readerAI.menu">
+              <span class="material-icons-round">auto_awesome</span>
+            </summary>
+            <div class="toolbar-menu-popover" role="menu">
+              <button class="toolbar-menu-item" type="button" role="menuitem" data-reader-ai-action="explain">
+                <span class="material-icons-round">lightbulb</span><span data-i18n="readerAI.explain">Explain passage</span>
+              </button>
+              <button class="toolbar-menu-item" type="button" role="menuitem" data-reader-ai-action="summarize">
+                <span class="material-icons-round">summarize</span><span data-i18n="readerAI.summarize">Summarize passage</span>
+              </button>
+            </div>
+          </details>
+          </div>
 
         <div id="highlighter-panel" class="highlighter-panel">
           <div class="panel-title" data-i18n="app.highlighterSize">Highlighter Size</div>

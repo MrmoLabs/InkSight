@@ -20,7 +20,6 @@ import {
     ensureRuntimeUserId,
     setRuntimeProjectId
 } from './runtime-project-identity.js';
-import { saveCurrentProject } from '../inksight-file/inksight-project-actions.js';
 import { restoreInksightPersistence } from '../inksight-file/inksight-file-restore.js';
 import { loadRuntimeProjectSnapshot, saveRuntimeProjectSnapshot } from '../inksight-file/inksight-runtime-project-io.js';
 import { listRecentProjects, recordRecentProject } from './recent-projects.js';
@@ -401,6 +400,7 @@ export function createProjectWorkspaceController({
                 showSaveStatus('saving', t('status.exporting'), 0);
                 let payload = null;
                 try {
+                    const { saveCurrentProject } = await import('../inksight-file/inksight-project-actions.js');
                     payload = await saveCurrentProject(board, {
                         notify,
                         forcePrompt: forceExport
@@ -541,6 +541,7 @@ export function createProjectWorkspaceController({
         if (board) {
             let payload = null;
             try {
+                const { saveCurrentProject } = await import('../inksight-file/inksight-project-actions.js');
                 payload = await saveCurrentProject(board);
             } catch (error) {
                 logger.warn('Save project folder failed', error);

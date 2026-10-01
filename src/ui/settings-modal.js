@@ -339,7 +339,7 @@ class SettingsModal {
         }
 
         try {
-            resetWorkspace();
+            await resetWorkspace();
             emitAppNotification({ message: t('workspace.cleared'), level: 'success' });
             setTimeout(() => window.location.reload(), 800);
         } catch (error) {

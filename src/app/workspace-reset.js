@@ -1,4 +1,3 @@
-import { Transforms } from '@plait/core';
 import { getAppContext } from './app-context.js';
 import { graphNodesStore } from '../mindmap/graph-view/graph-nodes-store.js';
 import { DOCUMENT_HISTORY_STORAGE_KEY } from '../core/document-history-store.js';
@@ -18,12 +17,13 @@ const RUNTIME_KEYS_TO_CLEAR = [
  * the next boot starts from an empty workspace instead of restoring the old
  * runtime snapshot.
  */
-export function resetWorkspace() {
+export async function resetWorkspace() {
     const context = getAppContext();
 
     // 1. 清空画布元素（从尾部逐个移除，触发 board 的常规删除流程）
     const board = context?.board;
     if (board) {
+        const { Transforms } = await import('@plait/core');
         while (board.children.length > 0) {
             Transforms.removeNode(board, [board.children.length - 1]);
         }

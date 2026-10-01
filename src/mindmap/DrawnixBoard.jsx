@@ -25,7 +25,6 @@ import {
     insertCardIntoBoard
 } from './drawnix-board-interactions.js';
 import { APP_EVENTS } from '../core/event-names.js';
-import { isGraphViewOpen } from './graph-view/graph-view.js';
 
 const logger = createLogger('DrawnixBoard');
 
@@ -250,7 +249,7 @@ export const DrawnixBoardComponent = () => {
         const handleHighlightSelected = (e) => {
             const { cardId } = e.detail;
             // 图谱视图覆盖脑图时闪烁定位毫无意义，还会盖在视图上
-            if (isGraphViewOpen()) {
+            if (document.querySelector('.graph-view.active')) {
                 return;
             }
             focusBoardCard({ board, cardId, setFlashOverlay });

@@ -25,6 +25,10 @@ function manualChunks(id) {
     return 'epub-vendor';
   }
 
+  if (normalizedId.includes('/node_modules/uuid/')) {
+    return 'uuid-vendor';
+  }
+
   if (normalizedId.includes('/node_modules/marked/') || normalizedId.includes('/node_modules/katex/')) {
     return 'text-vendor';
   }

@@ -2,6 +2,9 @@ import { Transforms, getSelectedElements } from '@plait/core';
 import { v4 as uuidv4 } from 'uuid';
 import { getAppContext } from '../app/app-context.js';
 import { APP_EVENTS } from '../core/event-names.js';
+import { sanitizeViewport } from './viewport-state.js';
+
+export { sanitizeViewport } from './viewport-state.js';
 
 export function emitMindmapSelectionChanged(detail) {
     window.dispatchEvent(new CustomEvent(APP_EVENTS.MINDMAP_SELECTION_CHANGED, {
@@ -173,29 +176,4 @@ export function handleBoardOperations({ data, boardRef, processingCardIds, cardS
             handleUpdatedNode(data, op, cardSystem, logger);
         }
     });
-}
-
-/**
- * Guard against corrupted viewport data (e.g. zoom = Infinity) entering the
- * save/restore cycle — a bad viewport used to propagate through snapshots
- * and permanently break the zoom display.
- */
-export function sanitizeViewport(viewport) {
-    if (!viewport || typeof viewport !== 'object') {
-        return null;
-    }
-
-    const next = { ...viewport };
-    const zoom = Number(next.zoom);
-    if (!Number.isFinite(zoom) || zoom <= 0.01 || zoom >= 20) {
-        next.zoom = 1;
-    }
-    for (const key of Object.keys(next)) {
-        if (key === 'zoom') continue;
-        const value = Number(next[key]);
-        if (typeof next[key] === 'number' && !Number.isFinite(value)) {
-            next[key] = 0;
-        }
-    }
-    return next;
 }

@@ -201,7 +201,7 @@ describe('workspace-events', () => {
         expect(callbacks.ui.promptBulkRelink).toHaveBeenCalled();
     });
 
-    it('opens graph view with the mind-map pane forced to full width', () => {
+    it('opens graph view with the mind-map pane forced to full width', async () => {
         const listeners = createWorkspaceEventListeners({
             elements,
             windowTarget: window,
@@ -217,6 +217,8 @@ describe('workspace-events', () => {
             force: true,
             notesView: 'mindmap'
         });
-        expect(openGraphView).toHaveBeenCalledWith({ rootCardId: 'card-1' });
+        await vi.waitFor(() => {
+            expect(openGraphView).toHaveBeenCalledWith({ rootCardId: 'card-1' });
+        });
     });
 });

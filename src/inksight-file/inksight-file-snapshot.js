@@ -1,7 +1,6 @@
-import { VERSIONS } from '../drawnix/drawnix/src/constants.ts';
-import { sanitizeViewport } from '../mindmap/drawnix-board-state.js';
+import { sanitizeViewport } from '../mindmap/viewport-state.js';
 import { graphNodesStore } from '../mindmap/graph-view/graph-nodes-store.js';
-import { isInksightPayload } from './inksight-file-types.js';
+import { DRAWNIX_FILE_VERSION, isInksightPayload } from './inksight-file-types.js';
 
 export function buildInksightPersistenceSnapshot(appContext = {}) {
     const snapshot = {};
@@ -38,7 +37,7 @@ export function buildInksightPersistenceSnapshot(appContext = {}) {
 export function buildInksightFilePayload({ appContext = {}, board, lastPage } = {}) {
     const payload = {
         type: 'drawnix',
-        version: VERSIONS.drawnix,
+        version: DRAWNIX_FILE_VERSION,
         source: 'web',
         elements: board?.children || [],
         viewport: sanitizeViewport(board?.viewport) || { zoom: 1 },

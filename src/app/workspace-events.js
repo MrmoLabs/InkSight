@@ -1,6 +1,5 @@
 import { handleRecoveryPanelClick } from './recovery-panel-actions.js';
 import { getAppContext } from './app-context.js';
-import { openGraphView } from '../mindmap/graph-view/graph-view.js';
 import { emitAppNotification } from '../ui/app-notifications.js';
 import { APP_EVENTS } from '../core/event-names.js';
 import { t } from '../i18n/index.js';
@@ -45,7 +44,7 @@ export function createWorkspaceEventListeners({
         {
             target: windowTarget,
             event: APP_EVENTS.OPEN_GRAPH_VIEW,
-            handler: (e) => {
+            handler: async (e) => {
                 const cardId = e.detail?.cardId;
                 if (!cardId) {
                     return;
@@ -62,6 +61,7 @@ export function createWorkspaceEventListeners({
                 // pane to full width so compact/split layouts cannot collapse
                 // the interactive viewport to zero pixels.
                 ui.setWorkspaceMode('map', { force: true, notesView: 'mindmap' });
+                const { openGraphView } = await import('../mindmap/graph-view/graph-view.js');
                 openGraphView({ rootCardId: cardId });
             }
         },

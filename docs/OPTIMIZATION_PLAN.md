@@ -77,6 +77,14 @@ CSS. The test suite passes, and the production preview opens successfully.
   Separate dependencies shared with the initial route from the conversion and
   graph-only code before claiming those vendors are action-lazy.
 
+### Batch 6: Defer Canvas Mounting
+
+Design: do not instantiate the Drawnix canvas during application bootstrap.
+Load and mount it on the first transition to Map mode, keep one shared
+initialization promise, and allow retry after a failed load. This keeps the
+reading-only startup free of canvas mount work without changing the user's
+saved map data or the mode-switch behavior.
+
 ## Feature Designs
 
 ### Reader AI

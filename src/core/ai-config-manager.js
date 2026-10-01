@@ -55,6 +55,7 @@ class AIConfigManager {
     constructor() {
         this.config = { ...DEFAULT_CONFIG };
         this.listeners = new Set();
+        this.secureStorageEncryptionAvailable = null;
         this.STORAGE_KEY = STORAGE_KEY;
         this.PROVIDER_PRESETS = PROVIDER_PRESETS;
         this.PROTOCOLS = PROTOCOLS;
@@ -63,6 +64,7 @@ class AIConfigManager {
 
     init() {
         this.config = { ...DEFAULT_CONFIG };
+        this.secureStorageEncryptionAvailable = null;
         // Electron: the key is encrypted by the main process (safeStorage).
         // Browser builds keep localStorage persistence.
         this.secureStorage = Boolean(
@@ -89,21 +91,27 @@ class AIConfigManager {
     async loadSecureConfig({ migrateFromLocalStorage }) {
         try {
             const result = await window.electronAPI.aiConfigLoad();
-            if (result?.success && result.config) {
-                this.config = parseConfig(result.config);
-                this.listeners.forEach((fn) => fn(this.get()));
-            } else if (migrateFromLocalStorage && this.config.apiKey) {
-                // First run after the upgrade: move the plaintext key out of
-                // localStorage into the encrypted main-process store.
-                this.persist();
+            if (!result?.success) {
+                return;
             }
-            if (migrateFromLocalStorage) {
-                try {
-                    localStorage.removeItem(this.STORAGE_KEY);
-                } catch {
-                    // Non-fatal: config already lives in secure storage.
+
+            this.secureStorageEncryptionAvailable = result.encrypted === true;
+            if (result.config) {
+                this.config = parseConfig(result.config);
+            }
+
+            if (migrateFromLocalStorage && this.secureStorageEncryptionAvailable) {
+                const saveResult = await window.electronAPI.aiConfigSave({ ...this.config });
+                if (saveResult?.success && saveResult.encrypted) {
+                    try {
+                        localStorage.removeItem(this.STORAGE_KEY);
+                    } catch {
+                        // Non-fatal: config already lives in secure storage.
+                    }
                 }
             }
+
+            this.listeners.forEach((fn) => fn(this.get()));
         } catch {
             // Keep the config loaded from localStorage, if any.
         }
@@ -123,6 +131,19 @@ class AIConfigManager {
 
     usesSecureStorage() {
         return this.secureStorage;
+    }
+
+    getStorageStatus() {
+        if (!this.secureStorage) {
+            return 'browser';
+        }
+        if (this.secureStorageEncryptionAvailable === true) {
+            return 'encrypted';
+        }
+        if (this.secureStorageEncryptionAvailable === false) {
+            return 'unavailable';
+        }
+        return 'checking';
     }
 
     set(patch) {
@@ -165,6 +186,16 @@ class AIConfigManager {
 
     persist() {
         if (this.secureStorage) {
+            if (this.secureStorageEncryptionAvailable !== true && this.config.apiKey) {
+                return;
+            }
+            if (this.secureStorageEncryptionAvailable !== true) {
+                try {
+                    localStorage.removeItem(this.STORAGE_KEY);
+                } catch {
+                    // Continue with the safe non-secret fields where possible.
+                }
+            }
             window.electronAPI.aiConfigSave({ ...this.config }).catch(() => {
                 // Persistence failure keeps session config applied.
             });

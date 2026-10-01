@@ -25,6 +25,8 @@ Status: completed in `f9bdc9f`.
 
 ### Batch 2: AI Credential Storage
 
+Status: completed.
+
 - Require Electron `safeStorage` encryption before persisting a non-empty API
   key.
 - Keep an entered key available for the current session when encryption is not

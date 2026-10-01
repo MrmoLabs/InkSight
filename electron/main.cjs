@@ -495,7 +495,7 @@ handleTrustedIpc('ai-config-load', async () => {
     try {
         const filePath = path.join(app.getPath('userData'), AI_CONFIG_FILE);
         if (!fs.existsSync(filePath)) {
-            return { success: true, config: null };
+            return { success: true, config: null, encrypted: safeStorage.isEncryptionAvailable() };
         }
         const raw = fs.readFileSync(filePath);
         if (!safeStorage.isEncryptionAvailable()) {
@@ -512,12 +512,19 @@ handleTrustedIpc('ai-config-save', async (event, config) => {
     try {
         const filePath = path.join(app.getPath('userData'), AI_CONFIG_FILE);
         ensureDir(path.dirname(filePath));
-        const json = JSON.stringify(sanitizeAiConfig(config));
-        // Without an OS keyring (some Linux setups) fall back to plain text in
-        // the user profile — no worse than the previous localStorage approach.
+        const sanitizedConfig = sanitizeAiConfig(config);
+        const json = JSON.stringify(sanitizedConfig);
         const encrypted = safeStorage.isEncryptionAvailable();
+        if (!encrypted && sanitizedConfig.apiKey) {
+            return {
+                success: false,
+                encrypted: false,
+                persisted: false,
+                error: 'OS encryption is unavailable; API keys are kept for this session only.'
+            };
+        }
         writeFileAtomic(filePath, encrypted ? safeStorage.encryptString(json) : Buffer.from(json, 'utf-8'));
-        return { success: true, encrypted };
+        return { success: true, encrypted, persisted: true, apiKeyPersisted: encrypted && Boolean(sanitizedConfig.apiKey) };
     } catch (error) {
         console.error('IPC ai-config-save error:', error);
         return { success: false, error: error.message };

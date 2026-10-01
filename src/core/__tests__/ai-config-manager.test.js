@@ -64,10 +64,10 @@ describe('AIConfigManager', () => {
         expect(JSON.parse(localStorage.getItem('inksight:ai-config')).apiKey).toBe('');
     });
 
-    it('routes persistence through the encrypted main-process store when available', () => {
+    it('routes persistence through the encrypted main-process store when available', async () => {
         const saved = [];
         window.electronAPI = {
-            aiConfigLoad: vi.fn().mockResolvedValue({ success: true, config: null }),
+            aiConfigLoad: vi.fn().mockResolvedValue({ success: true, config: null, encrypted: true }),
             aiConfigSave: vi.fn().mockImplementation((config) => {
                 saved.push(config);
                 return Promise.resolve({ success: true, encrypted: true });
@@ -75,6 +75,7 @@ describe('AIConfigManager', () => {
         };
         try {
             aiConfigManager.init();
+            await vi.waitFor(() => expect(aiConfigManager.getStorageStatus()).toBe('encrypted'));
             aiConfigManager.set({ apiKey: 'sk-secure' });
 
             expect(saved.at(-1)).toMatchObject({ apiKey: 'sk-secure' });
@@ -89,10 +90,10 @@ describe('AIConfigManager', () => {
         localStorage.setItem('inksight:ai-config', JSON.stringify({ provider: 'custom', apiKey: 'sk-legacy' }));
         const saved = [];
         window.electronAPI = {
-            aiConfigLoad: vi.fn().mockResolvedValue({ success: true, config: null }),
+            aiConfigLoad: vi.fn().mockResolvedValue({ success: true, config: null, encrypted: true }),
             aiConfigSave: vi.fn().mockImplementation((config) => {
                 saved.push(config);
-                return Promise.resolve({ success: true });
+                return Promise.resolve({ success: true, encrypted: true });
             })
         };
         try {
@@ -102,6 +103,49 @@ describe('AIConfigManager', () => {
             expect(saved.at(-1)).toMatchObject({ apiKey: 'sk-legacy' });
             expect(localStorage.getItem('inksight:ai-config')).toBeNull();
             expect(aiConfigManager.get().apiKey).toBe('sk-legacy');
+        } finally {
+            delete window.electronAPI;
+            localStorage.clear();
+        }
+    });
+
+    it('keeps an API key in memory without sending it to unavailable Electron storage', async () => {
+        const aiConfigSave = vi.fn().mockResolvedValue({ success: false, encrypted: false });
+        window.electronAPI = {
+            aiConfigLoad: vi.fn().mockResolvedValue({ success: true, config: null, encrypted: false }),
+            aiConfigSave
+        };
+        try {
+            aiConfigManager.init();
+            await vi.waitFor(() => expect(aiConfigManager.getStorageStatus()).toBe('unavailable'));
+
+            aiConfigManager.set({ apiKey: 'sk-session-only' });
+
+            expect(aiConfigManager.get().apiKey).toBe('sk-session-only');
+            expect(aiConfigSave).not.toHaveBeenCalled();
+            expect(localStorage.getItem('inksight:ai-config')).toBeNull();
+        } finally {
+            delete window.electronAPI;
+            localStorage.clear();
+        }
+    });
+
+    it('clears a legacy localStorage key when encryption is unavailable', async () => {
+        localStorage.setItem('inksight:ai-config', JSON.stringify({ provider: 'custom', apiKey: 'sk-legacy' }));
+        const aiConfigSave = vi.fn().mockResolvedValue({ success: true, encrypted: false });
+        window.electronAPI = {
+            aiConfigLoad: vi.fn().mockResolvedValue({ success: true, config: null, encrypted: false }),
+            aiConfigSave
+        };
+        try {
+            aiConfigManager.init();
+            await vi.waitFor(() => expect(aiConfigManager.getStorageStatus()).toBe('unavailable'));
+            expect(aiConfigManager.get().apiKey).toBe('sk-legacy');
+
+            aiConfigManager.clearApiKey();
+
+            expect(localStorage.getItem('inksight:ai-config')).toBeNull();
+            expect(aiConfigSave).toHaveBeenCalledWith(expect.objectContaining({ apiKey: '' }));
         } finally {
             delete window.electronAPI;
             localStorage.clear();

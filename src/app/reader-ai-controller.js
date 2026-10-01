@@ -1,19 +1,17 @@
 import { t } from '../i18n/index.js';
 
-const ACTIONS = Object.freeze(['explain', 'summarize']);
+const ACTIONS = Object.freeze(['explain', 'summarize', 'createMap']);
 
 export function buildReaderAiMessages(action, passage) {
     if (!ACTIONS.includes(action)) {
         throw new Error(`Unsupported reader AI action: ${action}`);
     }
 
-    const instruction = action === 'explain'
-        ? t('readerAI.prompt.explain')
-        : t('readerAI.prompt.summarize');
+    const instruction = t(`readerAI.prompt.${action}`);
 
     return [{
         role: 'user',
-        content: `${instruction}\n\n${t('readerAI.passageLabel')}:\n${passage}`
+        content: `${instruction}\n\n${t('readerAI.passageLabel')}:\n${typeof passage === 'string' ? passage : passage.text}`
     }];
 }
 
@@ -23,6 +21,8 @@ export function createReaderAiController({
     chatComplete,
     confirmSend,
     showResult,
+    saveResult = null,
+    createMap = null,
     notify
 }) {
     return {
@@ -61,7 +61,13 @@ export function createReaderAiController({
                     system: t('readerAI.system'),
                     messages: buildReaderAiMessages(action, review.passage)
                 });
-                showResult({ action, answer, passage });
+                showResult({
+                    action,
+                    answer,
+                    passage,
+                    onSave: saveResult ? () => saveResult({ passage, answer }) : null,
+                    onCreateMap: createMap ? () => createMap({ passage, answer }) : null
+                });
                 return true;
             } catch (error) {
                 notify({

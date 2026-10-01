@@ -25,6 +25,8 @@ import { initializeI18n, LOCALE_CHANGED_EVENT, t } from './i18n/index.js';
 import { aiConfigManager } from './core/ai-config-manager.js';
 import { chatComplete } from './core/ai-client.js';
 import { modalManager } from './ui/modal-manager.js';
+import { graphNodesStore } from './mindmap/graph-view/graph-nodes-store.js';
+import { createReaderAiMap } from './app/reader-ai-map.js';
 
 const logger = createLogger('Main');
 
@@ -64,9 +66,55 @@ const readerAiController = createReaderAiController({
         confirmLabel: t('readerAI.send'),
         cancelLabel: t('common.cancel')
     }),
-    showResult: ({ action, answer }) => modalManager.showText(
-        `${t('readerAI.resultTitle', { action: t(`readerAI.${action}`) })}\n\n${answer}`
-    ),
+    showResult: ({ action, answer, passage, onSave, onCreateMap }) => modalManager.showReaderAiResult({
+        title: t('readerAI.resultTitle', { action: t(`readerAI.${action}`) }),
+        passage: passage.text,
+        answer,
+        saveLabel: t('readerAI.saveToAnnotation'),
+        mapLabel: t('readerAI.createMap'),
+        closeLabel: t('common.close'),
+        onSave,
+        onCreateMap
+    }),
+    saveResult: ({ passage, answer }) => {
+        const card = Array.from(cardSystem.cards.values())
+            .find((item) => item.highlightId === passage.id);
+        if (!card) {
+            emitAppNotification({ message: t('readerAI.annotationMissing'), level: 'warning' });
+            return false;
+        }
+        const saved = `${card.note?.trim() ? `${card.note.trim()}\n\n` : ''}${t('readerAI.savedAnswer')}\n${answer.trim()}`;
+        cardSystem.updateCard(card.id, { note: saved });
+        emitAppNotification({ message: t('readerAI.saved'), level: 'success' });
+        return true;
+    },
+    createMap: async ({ passage, answer }) => {
+        try {
+            const result = createReaderAiMap({
+                passage,
+                answer,
+                cardSystem,
+                graphNodesStore,
+                idFactory: () => `reader-ai-${crypto.randomUUID()}`
+            });
+            if (!result) {
+                emitAppNotification({ message: t('readerAI.annotationMissing'), level: 'warning' });
+                return false;
+            }
+            setWorkspaceMode('map', { force: true, notesView: 'mindmap' });
+            await ensureDrawnixBoard();
+            const { openGraphView } = await import('./mindmap/graph-view/graph-view.js');
+            openGraphView({ rootCardId: result.rootCardId });
+            emitAppNotification({ message: t('readerAI.mapCreated'), level: 'success' });
+            return true;
+        } catch (error) {
+            emitAppNotification({
+                message: t('mindmap.loadFailed', { message: error.message }),
+                level: 'error'
+            });
+            return false;
+        }
+    },
     notify: emitAppNotification
 });
 

@@ -47,6 +47,21 @@ describe('reader AI controller', () => {
         expect(dependencies.showResult).toHaveBeenCalledWith(expect.objectContaining({ answer: 'An explanation' }));
     });
 
+    it('offers source-aware save and map actions after explicit confirmation', async () => {
+        const saveResult = vi.fn();
+        const createMap = vi.fn();
+        const { controller, dependencies } = createController({ saveResult, createMap });
+
+        await expect(controller.run('createMap')).resolves.toBe(true);
+        expect(dependencies.confirmSend).toHaveBeenCalledWith(expect.objectContaining({ passage: 'A selected passage' }));
+        const result = dependencies.showResult.mock.calls[0][0];
+        expect(result.passage.text).toBe('A selected passage');
+        result.onSave();
+        result.onCreateMap();
+        expect(saveResult).toHaveBeenCalledWith(expect.objectContaining({ answer: 'An explanation' }));
+        expect(createMap).toHaveBeenCalledWith(expect.objectContaining({ answer: 'An explanation' }));
+    });
+
     it('sends nothing when the user cancels the review dialog', async () => {
         const { controller, dependencies } = createController({
             confirmSend: vi.fn(async () => false)

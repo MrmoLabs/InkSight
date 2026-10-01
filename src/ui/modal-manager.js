@@ -60,6 +60,45 @@ export class ModalManager {
         this.show();
     }
 
+    showReaderAiResult({ title, passage, answer, saveLabel, mapLabel, closeLabel, onSave, onCreateMap }) {
+        this.body.innerHTML = '';
+
+        const heading = document.createElement('h3');
+        heading.className = 'modal-title';
+        heading.textContent = title;
+        this.body.appendChild(heading);
+
+        const source = document.createElement('blockquote');
+        source.className = 'modal-message reader-ai-source';
+        source.textContent = passage;
+        this.body.appendChild(source);
+
+        const result = document.createElement('div');
+        result.className = 'modal-text';
+        result.textContent = answer;
+        this.body.appendChild(result);
+
+        const actions = document.createElement('div');
+        actions.className = 'modal-actions';
+        const addAction = (label, handler, primary = false) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = `modal-btn${primary ? ' modal-btn-primary' : ''}`;
+            button.textContent = label;
+            button.onclick = () => {
+                this.hide();
+                handler?.();
+            };
+            actions.appendChild(button);
+        };
+
+        if (onSave) addAction(saveLabel, onSave);
+        if (onCreateMap) addAction(mapLabel, onCreateMap, true);
+        addAction(closeLabel, null);
+        this.body.appendChild(actions);
+        this.show();
+    }
+
     /**
      * In-app replacement for window.confirm. Resolves true only when the
      * confirm button is pressed; cancel, backdrop click and Escape all

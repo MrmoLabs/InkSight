@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { isSafeExternalUrl, renderSafeMarkdown, sanitizeHtml } from '../safe-html.js';
+import { escapeHtml } from '../escape-html.js';
 
 describe('safe HTML rendering', () => {
+    it('escapes user text for HTML text and attribute contexts', () => {
+        expect(escapeHtml(`<note data-x="1" title='&'>`))
+            .toBe('&lt;note data-x=&quot;1&quot; title=&#39;&amp;&#39;&gt;');
+    });
+
     it('removes executable markup and unsafe URLs', () => {
         const html = sanitizeHtml(`
             <img src="x" onerror="window.pwned = true">

@@ -1,15 +1,7 @@
 import { getAppContext } from './app-context.js';
 import { renderRecoveryWorkbenchMarkup, buildRecoveryWorkbenchModel } from './recovery-workbench.js';
 import { getLocale, t } from '../i18n/index.js';
-
-function escapeHtml(value) {
-    return String(value ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
-}
+import { escapeHtml } from '../utils/escape-html.js';
 
 function describeDocumentStatus(file, index) {
     if (file.loaded) {

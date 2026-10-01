@@ -1,15 +1,7 @@
 import { getAppContext } from './app-context.js';
 import { buildRecoveryDiagnostics, findLoadedDocumentMatch } from './document-relink.js';
 import { t } from '../i18n/index.js';
-
-function escapeHtml(value) {
-    return String(value ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
-}
+import { escapeHtml } from '../utils/escape-html.js';
 
 function getCardsCollection(cardSystem) {
     if (cardSystem?.cards instanceof Map) {

@@ -36,8 +36,11 @@ Status: completed.
 
 ### Batch 3: Shared Safe Rendering
 
+Status: completed.
+
 - Move the duplicated HTML escaping helper into a shared utility.
-- Use it at the search, project-home, and file-library HTML string boundaries.
+- Use it at the search, project-home, file-library, and recovery-workbench HTML
+  string boundaries.
 - Add tests for text and attribute contexts.
 
 ### Batch 4: Graph View Boundaries

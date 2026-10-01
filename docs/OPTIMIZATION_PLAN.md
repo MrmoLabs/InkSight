@@ -56,12 +56,26 @@ Status: completed.
 
 ### Batch 5: End-to-End Coverage and Performance Evidence
 
+Status: JavaScript production minification completed. The local production
+build shrank from 14.57 MB to 8.65 MB (40.6%). CSS minification remains off
+because Lightning CSS rejects existing `:export` blocks and malformed vendored
+CSS. The test suite passes, and the production preview opens successfully.
+
 - Add a browser-driven smoke path for import, annotation, node creation,
   save/restore, and source navigation when a supported browser runner is
   available in the build environment.
 - Record initial-load and first-use chunk costs for Mermaid and ELK. Keep the
   current action-lazy loading if those chunks stay out of startup; split them
   further only when measured first-use latency warrants it.
+- Compare the current unminified production output with Vite's JavaScript
+  production minifier. Keep JavaScript minification enabled only if it reduces
+  shipped assets, preserves deferred reader imports, and passes the
+  existing test/build checks. Keep CSS minification disabled until the current
+  CSS Module and vendored styles are compatible with Lightning CSS.
+- Follow up on the production entry graph: the current entry statically imports
+  the Mermaid and Drawnix vendor chunks even though their main UI is deferred.
+  Separate dependencies shared with the initial route from the conversion and
+  graph-only code before claiming those vendors are action-lazy.
 
 ## Feature Designs
 

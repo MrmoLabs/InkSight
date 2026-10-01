@@ -60,6 +60,7 @@ export class PDFReader {
         this.container.style.outline = 'none'; // Remove default focus outline
         this.pdfDoc = null;
         this.scale = 1.5;
+        this.scaleMode = 'auto';
         this.pageStack = null;
         this.pinchFocusPoint = null;
         this.pinchViewportCenter = null;
@@ -131,6 +132,7 @@ export class PDFReader {
         });
 
         this.initObserver();
+        this.initResponsiveFitObserver();
         this.initEventHandlers();
 
         this.cleanupCallbacks.push(registerPdfReaderGlobalListeners(this));
@@ -237,6 +239,11 @@ export class PDFReader {
     }
 
     async setScale(newScale, focusPoint = null, options = {}) {
+        const { autoFit = false } = options;
+        if (!autoFit) {
+            this.scaleMode = 'manual';
+        }
+
         if (Math.abs(this.scale - newScale) < 0.01) return;
 
         const { focusPointIsContent = false, viewportFocusPoint = null } = options;
@@ -270,6 +277,62 @@ export class PDFReader {
         await this.renderVisiblePages();
         this.finishPageStackTransition(previousStack);
         this.showZoomFeedback(newScale);
+    }
+
+    async getFitToWidthScale() {
+        if (!this.pdfDoc) return this.scale;
+
+        const firstPage = await this.pdfDoc.getPage(1);
+        const pageWidth = firstPage.getViewport({ scale: 1 }).width;
+        const availableWidth = Math.max(240, this.container.clientWidth - 32);
+        return Math.min(1.5, availableWidth / pageWidth);
+    }
+
+    initResponsiveFitObserver() {
+        const scheduleFit = () => {
+            if (this.scaleMode !== 'auto' || !this.pdfDoc || this.destroyed) {
+                return;
+            }
+
+            if (this.fitRunning) {
+                this.fitPending = true;
+                return;
+            }
+
+            if (this.fitFrame) return;
+
+            this.fitFrame = window.requestAnimationFrame(() => {
+                this.fitFrame = null;
+                if (this.scaleMode !== 'auto' || !this.pdfDoc || this.destroyed) return;
+                this.fitRunning = true;
+                void (async () => {
+                    try {
+                        const nextScale = await this.getFitToWidthScale();
+                        if (!this.destroyed && this.scaleMode === 'auto') {
+                            await this.setScale(nextScale, null, { autoFit: true });
+                        }
+                    } finally {
+                        this.fitRunning = false;
+                        if (this.fitPending) {
+                            this.fitPending = false;
+                            scheduleFit();
+                        }
+                    }
+                })();
+            });
+        };
+
+        if (typeof ResizeObserver !== 'undefined') {
+            this.fitObserver = new ResizeObserver(scheduleFit);
+            this.fitObserver.observe(this.container);
+            this.cleanupCallbacks.push(() => {
+                this.fitObserver?.disconnect();
+                this.fitObserver = null;
+            });
+        } else {
+            window.addEventListener('resize', scheduleFit);
+            this.cleanupCallbacks.push(() => window.removeEventListener('resize', scheduleFit));
+        }
     }
 
     captureScaleAnchor(contentFocusX, contentFocusY) {
@@ -552,6 +615,13 @@ export class PDFReader {
 
             const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
             this.pdfDoc = await loadingTask.promise;
+
+            // Fit the full page to the current reading column until the reader
+            // explicitly zooms; the resize observer keeps orientation changes
+            // and split-panel adjustments in sync.
+            if (this.scaleMode === 'auto') {
+                this.scale = await this.getFitToWidthScale();
+            }
 
             this.onPageCountChange?.(this.pdfDoc.numPages);
 
@@ -1050,6 +1120,11 @@ export class PDFReader {
         // Block in-flight async render callbacks from touching the DOM
         // after teardown (they used to re-append page stacks).
         this.destroyed = true;
+
+        if (this.fitFrame) {
+            window.cancelAnimationFrame(this.fitFrame);
+            this.fitFrame = null;
+        }
 
         if (this.zoomFeedbackTimeout) {
             clearTimeout(this.zoomFeedbackTimeout);

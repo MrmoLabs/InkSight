@@ -148,6 +148,7 @@ export class AnnotationList {
                 <div class="empty-state annotation-empty-state">
                     <span class="material-icons-round">edit_note</span>
                     <p>${t('app.noAnnotations')}</p>
+                    <span class="annotation-empty-hint">${t('app.annotationEmptyHint')}</span>
                 </div>`);
             return;
         }

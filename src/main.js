@@ -810,7 +810,10 @@ function applyWorkspaceLayout(mode, { notesView } = {}) {
         if (!isMobile && !isCompact) {
             splitView.setPanelWidth('right', mode === 'capture' ? CAPTURE_NOTES_FOCUS_WIDTH : getMapNotesFocusWidth());
         }
-        setMobileNotesView(notesView || (mode === 'capture' ? 'annotations' : 'split'));
+        const defaultNotesView = mode === 'capture'
+            ? 'annotations'
+            : (isMobile || isCompact ? 'mindmap' : 'split');
+        setMobileNotesView(notesView || defaultNotesView);
     }
 
     updatePanelControls();

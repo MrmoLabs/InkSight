@@ -27,7 +27,9 @@ export function buildProjectHomeModel(appContext = {}, projectStatus = {}) {
         canContinueWorkspace: recentSnapshots.length > 0 || Boolean(projectStatus.lastSavedAt),
         continueSummary: recentSnapshots.length
             ? t(recentSnapshots.length === 1 ? 'home.snapshotReady.one' : 'home.snapshotReady.other', { count: recentSnapshots.length })
-            : t('home.resumeRuntime'),
+            : projectStatus.lastSavedAt
+                ? t('home.resumeRuntime')
+                : t('home.resumeOpenCapture'),
         recentProjects,
         recentSnapshots
     };

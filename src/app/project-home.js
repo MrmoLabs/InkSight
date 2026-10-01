@@ -38,30 +38,73 @@ export function renderProjectHome(model = {}) {
     const recentSnapshots = Array.isArray(model.recentSnapshots) ? model.recentSnapshots : [];
 
     const quickActions = [
-        { action: 'import', icon: 'library_add', label: t('home.importDocuments'), hint: t('home.importHint') },
         { action: 'open-project', icon: 'folder_open', label: t('home.openProject'), hint: t('home.openHint') },
         { action: 'save-project', icon: 'save', label: t('home.saveProject'), hint: t('home.saveHint') },
         { action: 'export-notes', icon: 'note_add', label: t('home.exportNotes'), hint: t('home.exportHint') }
     ];
 
     return `
-        <section class="project-home" aria-label="${escapeHtml(t('home.title'))}">
+        <section class="project-home project-home--immersive" aria-label="${escapeHtml(t('home.title'))}">
+          <div class="project-home-shell">
+          <div class="project-home-masthead">
+            <div class="project-home-wordmark"><span class="project-home-mark">I</span><span>INKSIGHT</span></div>
+            <div class="project-home-local"><span class="project-home-live-dot"></span>${escapeHtml(t('home.localFirst'))}</div>
+          </div>
           <header class="project-home-hero">
-            <span class="material-icons-round project-home-icon">auto_stories</span>
             <div class="project-home-copy">
+              <p class="project-home-kicker">${escapeHtml(t('home.kicker'))}</p>
               <h2>${escapeHtml(model.title || t('home.workspace'))}</h2>
               <p class="text-two-line">${escapeHtml(model.continueSummary || t('home.resumeOpenCapture'))}</p>
+              <div class="project-home-hero-actions">
+                <button type="button" class="project-home-btn primary" data-home-action="continue-workspace" ${model.canContinueWorkspace ? '' : 'disabled'} title="${escapeHtml(t('home.resumeWorkspace'))}">
+                  <span class="material-icons-round">play_arrow</span>
+                  <span class="project-home-btn-label">${escapeHtml(t('home.resume'))}</span>
+                  <span class="material-icons-round project-home-cta-arrow">arrow_forward</span>
+                </button>
+                <button type="button" class="project-home-btn project-home-import" data-home-action="import">
+                  <span class="material-icons-round">library_add</span>
+                  <span class="project-home-btn-label">${escapeHtml(t('home.importDocuments'))}</span>
+                </button>
+              </div>
             </div>
-            <div class="project-home-hero-actions">
-              <button type="button" class="project-home-btn primary" data-home-action="continue-workspace" ${model.canContinueWorkspace ? '' : 'disabled'} title="${escapeHtml(t('home.resumeWorkspace'))}">
-                <span class="material-icons-round">play_arrow</span>
-                <span class="project-home-btn-label">${escapeHtml(t('home.resume'))}</span>
-              </button>
+            <div class="project-home-scene" aria-hidden="true">
+              <div class="project-home-scene-glow"></div>
+              <div class="project-home-orbit project-home-orbit--outer"></div>
+              <div class="project-home-orbit project-home-orbit--middle"></div>
+              <div class="project-home-orbit project-home-orbit--inner"></div>
+              <span class="project-home-star project-home-star--one"></span>
+              <span class="project-home-star project-home-star--two"></span>
+              <span class="project-home-star project-home-star--three"></span>
+              <span class="project-home-star project-home-star--four"></span>
+              <div class="project-home-book">
+                <span class="project-home-book-glow"></span>
+                <span class="material-icons-round">auto_stories</span>
+                <span class="project-home-book-line project-home-book-line--one"></span>
+                <span class="project-home-book-line project-home-book-line--two"></span>
+              </div>
+              <span class="project-home-orbit-node project-home-orbit-node--notes"><span class="material-icons-round">edit_note</span></span>
+              <span class="project-home-orbit-node project-home-orbit-node--map"><span class="material-icons-round">account_tree</span></span>
+              <span class="project-home-orbit-node project-home-orbit-node--search"><span class="material-icons-round">travel_explore</span></span>
+              <span class="project-home-scene-caption">${escapeHtml(t('home.sceneCaption'))}</span>
+              <span class="project-home-scene-index">01 / INK</span>
             </div>
           </header>
+          <section class="project-home-quick" aria-label="${escapeHtml(t('home.quickActions'))}">
+            <div class="project-home-section-heading"><span>${escapeHtml(t('home.quickActions'))}</span><span class="project-home-heading-rule"></span><span class="project-home-heading-index">${escapeHtml(t('home.actionsIndex'))}</span></div>
+            <div class="project-home-quick-grid">
+              ${quickActions.map((item, index) => `
+                <button type="button" class="project-home-quick-card" data-home-action="${item.action}" style="--home-card-index:${index}">
+                  <span class="project-home-quick-top"><span class="project-home-quick-icon material-icons-round">${item.icon}</span><span class="project-home-quick-number">0${index + 1}</span></span>
+                  <span class="project-home-quick-title">${escapeHtml(item.label)}</span>
+                  <span class="project-home-quick-hint">${escapeHtml(item.hint)}</span>
+                  <span class="material-icons-round project-home-quick-arrow">arrow_outward</span>
+                </button>
+              `).join('')}
+            </div>
+          </section>
           <div class="project-home-grid">
             <section class="project-home-section project-home-section-recent">
-              <h3>${escapeHtml(t('home.recentProjects'))}</h3>
+              <div class="project-home-section-heading"><span>${escapeHtml(t('home.recentProjects'))}</span><span class="project-home-heading-rule"></span><span class="project-home-heading-index">01</span></div>
               <div class="project-home-list">
                 ${recentProjects.length ? recentProjects.map((project) => `
                   <button type="button" class="project-home-list-item" data-recent-project-id="${escapeHtml(project.projectId)}">
@@ -75,37 +118,23 @@ export function renderProjectHome(model = {}) {
                 `).join('') : `<div class="project-home-list-empty">${escapeHtml(t('home.noRecentProjects'))}</div>`}
               </div>
             </section>
-            <div class="project-home-side">
-              <section class="project-home-section">
-                <h3>${escapeHtml(t('home.quickActions'))}</h3>
-                <div class="project-home-list">
-                  ${quickActions.map((item) => `
-                    <button type="button" class="project-home-list-item project-home-action-row" data-home-action="${item.action}">
-                      <span class="material-icons-round project-home-list-icon">${item.icon}</span>
-                      <span class="project-home-list-copy">
-                        <span class="text-single-line">${escapeHtml(item.label)}</span>
-                        <span class="text-single-line">${escapeHtml(item.hint)}</span>
-                      </span>
-                    </button>
-                  `).join('')}
-                </div>
-              </section>
-              <section class="project-home-section">
-                <h3>${escapeHtml(t('home.snapshots'))}</h3>
-                <div class="project-home-list">
-                  ${recentSnapshots.length ? recentSnapshots.map((snapshot) => `
-                    <button type="button" class="project-home-list-item" data-home-snapshot-id="${escapeHtml(snapshot.snapshotId)}">
-                      <span class="material-icons-round project-home-list-icon">restore</span>
-                      <span class="project-home-list-copy">
-                        <span class="text-two-line">${escapeHtml(snapshot.projectName || t('home.workspaceSnapshot'))}</span>
-                        <span class="text-single-line">${escapeHtml(snapshot.note ? `${snapshot.note} · ` : '')}${escapeHtml(snapshot.bookName || t('settings.workspace'))} · ${formatTimestamp(Date.parse(snapshot.savedAt || 0))}</span>
-                      </span>
-                      <span class="material-icons-round project-home-list-arrow">arrow_forward</span>
-                    </button>
-                  `).join('') : `<div class="project-home-list-empty">${escapeHtml(t('home.noSnapshots'))}</div>`}
-                </div>
-              </section>
-            </div>
+            <section class="project-home-section project-home-section-snapshots">
+              <div class="project-home-section-heading"><span>${escapeHtml(t('home.snapshots'))}</span><span class="project-home-heading-rule"></span><span class="project-home-heading-index">02</span></div>
+              <div class="project-home-list">
+                ${recentSnapshots.length ? recentSnapshots.map((snapshot) => `
+                  <button type="button" class="project-home-list-item" data-home-snapshot-id="${escapeHtml(snapshot.snapshotId)}">
+                    <span class="material-icons-round project-home-list-icon">restore</span>
+                    <span class="project-home-list-copy">
+                      <span class="text-two-line">${escapeHtml(snapshot.projectName || t('home.workspaceSnapshot'))}</span>
+                      <span class="text-single-line">${escapeHtml(snapshot.note ? `${snapshot.note} · ` : '')}${escapeHtml(snapshot.bookName || t('settings.workspace'))} · ${formatTimestamp(Date.parse(snapshot.savedAt || 0))}</span>
+                    </span>
+                    <span class="material-icons-round project-home-list-arrow">arrow_forward</span>
+                  </button>
+                `).join('') : `<div class="project-home-list-empty">${escapeHtml(t('home.noSnapshots'))}</div>`}
+              </div>
+            </section>
+          </div>
+          <footer class="project-home-footer"><span>${escapeHtml(t('home.footer'))}</span><span class="project-home-footer-pulse"></span><span>${escapeHtml(t('home.localFirst'))}</span></footer>
           </div>
         </section>
     `;

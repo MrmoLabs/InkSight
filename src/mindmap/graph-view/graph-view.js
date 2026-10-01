@@ -8,9 +8,9 @@ import {
 } from 'd3-force';
 import { buildGraphTree } from './graph-tree.js';
 import { graphNodesStore } from './graph-nodes-store.js';
+import { GraphAiController } from './graph-ai-controller.js';
 import { cancelBoardCardFlash } from '../drawnix-board-interactions.js';
 import { getAppContext } from '../../app/app-context.js';
-import { aiConfigManager } from '../../core/ai-config-manager.js';
 import { chatStream } from '../../core/ai-client.js';
 import { modalManager } from '../../ui/modal-manager.js';
 import { emitAppNotification } from '../../ui/app-notifications.js';
@@ -43,9 +43,16 @@ export class GraphViewController {
         this.suppressSelectionPillUntil = 0;
         this.justClickedMarkTimestamp = 0;
         this.edgeItems = new Map();
-        this.pendingAiNodeIds = new Set();
         this.hoverTimer = null;
         this.chatStream = chatStream;
+        this.aiController = new GraphAiController({
+            getNodeById: (nodeId) => this.nodeById?.get(nodeId),
+            getBubbleElement: (nodeId) => document.getElementById(this.domId(nodeId)),
+            buildConversation: (parentId, question) => this.buildConversation(parentId, question),
+            updateNodeContent: (nodeId, text) => this.updateNodeContent(nodeId, text),
+            renderNodeBody: (nodeId, text) => this.renderNodeBody(nodeId, text),
+            chatStream: (...args) => this.chatStream(...args)
+        });
     }
 
     mount() {
@@ -355,7 +362,7 @@ export class GraphViewController {
         this.selectedNodeAt = 0;
         this.lastSelectionGesture = null;
         this.suppressSelectionPillUntil = 0;
-        this.pendingAiNodeIds.clear();
+        this.aiController.clearPending();
         clearTimeout(this.hoverTimer);
         this.hoverTimer = null;
         this.clearGraphDom();
@@ -998,7 +1005,7 @@ export class GraphViewController {
     }
 
     async regenerateNode(nodeId) {
-        if (this.pendingAiNodeIds.has(nodeId)) return;
+        if (this.aiController.pendingNodeIds.has(nodeId)) return;
         const treeNode = this.nodeById?.get(nodeId);
         const bubble = document.getElementById(this.domId(nodeId));
         const questionInput = bubble?.querySelector('.graph-bubble__question-input');
@@ -1016,7 +1023,7 @@ export class GraphViewController {
         const storedNode = graphNodesStore.setQuestion(nodeId, question);
         this.syncNodeMetadata(nodeId, storedNode);
         const parentId = this.parentByNodeId?.get(nodeId) || null;
-        const succeeded = await this.requestAiAnswer(treeNode, question, parentId, { preserveExisting: true });
+        const succeeded = await this.aiController.requestAnswer(treeNode, question, parentId, { preserveExisting: true });
         if (succeeded) {
             graphNodesStore.setKind(nodeId, 'ai');
             this.syncNodeMetadata(nodeId, graphNodesStore.get(nodeId));
@@ -1426,74 +1433,7 @@ export class GraphViewController {
         }, 100);
 
         if (mode === 'ai') {
-            void this.requestAiAnswer(node, question, parentId);
-        }
-    }
-
-    async requestAiAnswer(treeNode, question, parentId, { preserveExisting = false } = {}) {
-        if (this.pendingAiNodeIds.has(treeNode.id)) {
-            return false;
-        }
-        const config = aiConfigManager.get();
-        if (!aiConfigManager.isConfigured()) {
-            if (!preserveExisting) {
-                this.updateNodeContent(treeNode.id, t('graph.aiNotConfigured'));
-            }
-            emitAppNotification({ message: t('graph.aiNotConfiguredNotice'), level: 'warning' });
-            return false;
-        }
-
-        const bubbleEl = document.getElementById(this.domId(treeNode.id));
-        const regenerateBtn = bubbleEl?.querySelector('.graph-bubble__editor-btn--primary');
-        const previousContent = treeNode.text;
-        this.pendingAiNodeIds.add(treeNode.id);
-        bubbleEl?.classList.add('graph-bubble--loading');
-        if (regenerateBtn) regenerateBtn.disabled = true;
-        // 两种入口（选区延伸 / 气泡 ✨ 按钮）统一进入可见的思考中状态
-        if (!preserveExisting) {
-            this.updateNodeContent(treeNode.id, t('graph.aiThinking'));
-        }
-
-        let flushTimer = null;
-        try {
-            let answer = '';
-            const flush = () => {
-                flushTimer = null;
-                // 流式期间只更新内存态和 DOM，完整内容最后统一入库
-                const viewNode = this.nodeById?.get(treeNode.id);
-                if (viewNode) {
-                    viewNode.text = answer;
-                }
-                this.renderNodeBody(treeNode.id, answer);
-            };
-            await this.chatStream(config, {
-                system: t('graph.aiSystem'),
-                messages: this.buildConversation(parentId, question),
-                onDelta: (delta, full) => {
-                    answer = full;
-                    // 节流渲染：markdown 解析 + DOM 重排不必跟随每个 token
-                    if (!flushTimer) {
-                        flushTimer = setTimeout(flush, 120);
-                    }
-                }
-            });
-            clearTimeout(flushTimer);
-            this.updateNodeContent(treeNode.id, answer);
-            return true;
-        } catch (error) {
-            clearTimeout(flushTimer);
-            if (preserveExisting) {
-                treeNode.text = previousContent;
-                this.renderNodeBody(treeNode.id, previousContent);
-            } else {
-                this.updateNodeContent(treeNode.id, `(${t('graph.aiRequestFailed', { message: error.message })})`);
-            }
-            emitAppNotification({ message: t('graph.aiRequestFailed', { message: error.message }), level: 'error' });
-            return false;
-        } finally {
-            this.pendingAiNodeIds.delete(treeNode.id);
-            bubbleEl?.classList.remove('graph-bubble--loading');
-            if (regenerateBtn) regenerateBtn.disabled = false;
+            void this.aiController.requestAnswer(node, question, parentId);
         }
     }
 

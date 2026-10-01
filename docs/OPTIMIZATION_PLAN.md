@@ -45,6 +45,8 @@ Status: completed.
 
 ### Batch 4: Graph View Boundaries
 
+Status: completed.
+
 - Separate graph AI request/state handling from the graph view's DOM and
   interaction controller.
 - Keep rendering and selection behavior in the existing view.

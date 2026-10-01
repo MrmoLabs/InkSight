@@ -7,6 +7,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 function manualChunks(id) {
+  // Keep Vite's shared dynamic-import preloader out of the Drawnix chunk.
+  // Otherwise Rollup treats that chunk as an entry dependency and downloads
+  // the canvas, ELK, and Mermaid vendors during the reading-only startup.
+  if (id.includes('vite/preload-helper.js')) {
+    return 'dynamic-import-runtime';
+  }
+
   if (!id.includes('node_modules') && !id.includes(`${resolve(__dirname, 'src')}\\drawnix`) && !id.includes(`${resolve(__dirname, 'src')}/drawnix`)) {
     return undefined;
   }
@@ -76,6 +83,17 @@ function manualChunks(id) {
   return undefined;
 }
 
+function resolveModulePreloadDependencies(_filename, dependencies, { hostType }) {
+  if (hostType !== 'html') {
+    return dependencies;
+  }
+
+  // These vendors are used only after the user opens the canvas or a diagram
+  // conversion dialog. Let their dynamic imports fetch them at first use.
+  const deferredVendor = /\/(?:drawnix|elk|mermaid)-vendor-[^/]+\.js$/;
+  return dependencies.filter((dependency) => !deferredVendor.test(dependency));
+}
+
 export default defineConfig({
   base: './',
   server: {
@@ -94,6 +112,9 @@ export default defineConfig({
     target: 'es2020',
     minify: true,
     cssMinify: false,
+    modulePreload: {
+      resolveDependencies: resolveModulePreloadDependencies
+    },
     rollupOptions: {
       output: {
         manualChunks

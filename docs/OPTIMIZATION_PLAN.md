@@ -56,29 +56,30 @@ Status: completed.
 
 ### Batch 5: End-to-End Coverage and Performance Evidence
 
-Status: JavaScript production minification completed. The local production
-build shrank from 14.57 MB to 8.65 MB (40.6%). CSS minification remains off
-because Lightning CSS rejects existing `:export` blocks and malformed vendored
-CSS. The production preview opens, and entering Map mode mounts the canvas
-without browser console errors.
+Status: JavaScript production minification and first-use loading for the canvas
+vendors are completed. The local production build shrank from 14.57 MB to
+8.65 MB (40.6%). CSS minification remains off because Lightning CSS rejects
+existing `:export` blocks and malformed vendored CSS. The production preview
+opens, Map mode mounts the canvas, and the Mermaid conversion dialog opens.
 
 - Add an automated browser smoke path for import, annotation, node creation,
   save/restore, and source navigation when a CI browser runner is available.
-  The current local browser check covers startup and first Map-mode mount.
-- The graph view is now a separate 33 KB JavaScript chunk (9.3 KB gzip) and
-  19 KB CSS chunk (3.6 KB gzip), loaded on first use. Production HTML still
-  preloads the 793 KB Drawnix, 1.43 MB ELK, and 1.39 MB Mermaid vendor chunks;
-  those dependencies remain on the startup path and must not be described as
-  action-lazy yet.
+  The current local browser check covers startup, first Map-mode mount, and
+  opening the Mermaid conversion dialog.
+- The graph view is a separate 33 KB JavaScript chunk (9.3 KB gzip) and 19 KB
+  CSS chunk (3.6 KB gzip), loaded on first use. The production HTML now omits
+  the Drawnix, ELK, and Mermaid vendor chunks from startup preloads. Their
+  combined preload cost was about 3.61 MB raw / 1.08 MB gzip; Map mode and the
+  Mermaid dialog load successfully on first use.
 - Compare the current unminified production output with Vite's JavaScript
   production minifier. Keep JavaScript minification enabled only if it reduces
   shipped assets, preserves deferred reader imports, and passes the
   existing test/build checks. Keep CSS minification disabled until the current
   CSS Module and vendored styles are compatible with Lightning CSS.
-- Follow up on the production entry graph: the current entry statically imports
-  large Drawnix, ELK, and Mermaid vendor chunks. Continue separating shared
-  dependencies from the initial route before claiming those vendors are
-  action-lazy.
+- Vite's shared dynamic-import preloader is isolated from the Drawnix vendor
+  chunk, and HTML-level preload filtering keeps canvas-only vendors off the
+  startup path. Dynamic-import preloads remain enabled so the dependencies are
+  fetched when their features are opened.
 
 ### Batch 6: Defer Canvas Mounting
 
@@ -135,8 +136,9 @@ of the reading-only dependency path.
 
 - The production entry fell from 286 KB to 233 KB (uncompressed) after the
   graph view and board-only helpers left the initial dependency graph.
-- Mermaid, ELK, and Drawnix vendor preloads remain a measured follow-up, so
-  further module-boundary work is still needed for their transfer costs.
+- Mermaid, ELK, and Drawnix vendor transfer costs are deferred until first use
+  as described in Batch 5; the large chunks are still required when the canvas
+  and diagram-conversion features are opened.
 
 ## Feature Designs
 

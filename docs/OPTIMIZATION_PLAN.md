@@ -89,6 +89,12 @@ CSS. The test suite passes, and the production preview opens successfully.
 - Preserve a source anchor on generated notes so they can jump back to the
   passage.
 
+Initial implementation scope: provide explain and summarize actions for the
+most recently selected/highlighted passage. Show a confirmation with the exact
+passage, provider, endpoint, and model for every request. Keep answers temporary
+in the result dialog; defer map creation and saved AI notes until their source
+anchor and graph insertion behavior can be implemented together.
+
 ### Multi-Device Sync
 
 - Keep sync opt-in and place transport behind a provider interface rather than

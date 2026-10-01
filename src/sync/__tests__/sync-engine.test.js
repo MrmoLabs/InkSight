@@ -79,4 +79,18 @@ describe('syncProject', () => {
         expect(localStore.state.snapshot).toEqual({ notes: ['local'] });
         expect(localStore.conflicts).toEqual([{ snapshot: { notes: ['remote'] }, revisionId: 'remote-1' }]);
     });
+
+    it('rejects a remote revision whose identity does not match the head', async () => {
+        const provider = createProvider();
+        const revision = await encryptProjectRevision({
+            projectId: 'project-1', revisionId: 'unexpected', payload: { notes: ['remote'] }, passphrase
+        });
+        provider.revisions.set('project-1:remote-1', revision);
+        provider.heads.set('project-1', 'remote-1');
+        const localStore = createLocalStore({ snapshot: null, cursor: null, dirty: false });
+
+        await expect(syncProject({ projectId: 'project-1', provider, localStore, passphrase }))
+            .rejects.toThrow('identity does not match');
+        expect(localStore.state.snapshot).toBeNull();
+    });
 });

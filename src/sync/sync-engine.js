@@ -16,6 +16,9 @@ function validateDependencies(provider, localStore) {
 async function readRemoteRevision(provider, projectId, revisionId, passphrase, cryptoProvider) {
     const revision = await provider.getRevision(projectId, revisionId);
     if (!revision) throw new Error(`Remote revision ${revisionId} is missing.`);
+    if (revision.projectId !== projectId || revision.revisionId !== revisionId) {
+        throw new Error('Remote revision identity does not match its project head.');
+    }
     const snapshot = await decryptProjectRevision(revision, { projectId, passphrase, cryptoProvider });
     return { revision, snapshot };
 }

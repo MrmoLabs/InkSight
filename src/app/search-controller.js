@@ -1,5 +1,14 @@
 import { t } from '../i18n/index.js';
 
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+}
+
 function groupResults(results) {
     return {
         document: results.filter((result) => result.type === 'document'),
@@ -14,15 +23,15 @@ function renderResultGroup(title, results) {
     }
 
     return `
-        <section class="workspace-search-group" aria-label="${title}">
-          <div class="workspace-search-group-title">${title}</div>
+        <section class="workspace-search-group" aria-label="${escapeHtml(title)}">
+          <div class="workspace-search-group-title">${escapeHtml(title)}</div>
           <div class="workspace-search-group-results">
             ${results.map((result) => `
-              <button type="button" class="workspace-search-result" data-search-result-id="${result.id}" data-search-result-type="${result.type}">
+              <button type="button" class="workspace-search-result" data-search-result-id="${escapeHtml(result.id)}" data-search-result-type="${escapeHtml(result.type)}">
                 <span class="workspace-search-result-icon material-icons-round">${result.type === 'document' ? 'description' : result.type === 'card' ? 'sticky_note_2' : 'format_quote'}</span>
-                <span class="workspace-search-result-title text-two-line">${result.title}</span>
-                <span class="workspace-search-result-meta">${t(`search.type.${result.type}`)}</span>
-                <span class="workspace-search-result-excerpt text-three-line">${result.excerpt || t('search.noPreview')}</span>
+                <span class="workspace-search-result-title text-two-line">${escapeHtml(result.title)}</span>
+                <span class="workspace-search-result-meta">${escapeHtml(t(`search.type.${result.type}`))}</span>
+                <span class="workspace-search-result-excerpt text-three-line">${escapeHtml(result.excerpt || t('search.noPreview'))}</span>
               </button>
             `).join('')}
           </div>

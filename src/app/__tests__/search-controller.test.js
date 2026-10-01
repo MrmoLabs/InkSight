@@ -47,4 +47,30 @@ describe('search-controller', () => {
         }));
         expect(elements.searchPanel.classList.contains('visible')).toBe(false);
     });
+
+    it('renders untrusted result content as text instead of HTML', () => {
+        const result = {
+            id: 'doc-1" data-injected="yes',
+            type: 'document',
+            title: '<img src=x onerror=alert(1)>',
+            excerpt: '<svg onload=alert(1)>',
+            actionPayload: { documentId: 'doc-1' }
+        };
+        const controller = createSearchController({
+            elements,
+            buildIndex: () => [result],
+            queryIndex: () => [result],
+            getFiles: () => [],
+            onResultSelected
+        });
+
+        controller.refreshResults();
+
+        expect(elements.workspaceSearchResults.querySelector('img, svg')).toBeNull();
+        expect(elements.workspaceSearchResults.querySelector('[data-injected]')).toBeNull();
+        expect(elements.workspaceSearchResults.textContent).toContain(result.title);
+        expect(elements.workspaceSearchResults.textContent).toContain(result.excerpt);
+        expect(elements.workspaceSearchResults.querySelector('.workspace-search-result').getAttribute('data-search-result-id'))
+            .toBe(result.id);
+    });
 });

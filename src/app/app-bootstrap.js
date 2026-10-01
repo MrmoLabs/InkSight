@@ -57,11 +57,6 @@ export async function initAppBootstrap({
 
         hooks.updateToolbarSummary();
 
-        const mindmapContainer = document.getElementById('mindmap-container');
-        if (mindmapContainer) {
-            await hooks.createDrawnixView(mindmapContainer);
-        }
-
         const splitView = new SplitView({
             leftId: 'sidebar',
             centerId: 'reader-container',

@@ -1,5 +1,5 @@
 
-import { getAppContext } from '../app/app-context.js';
+import { getAppContext, restoreBoardState } from '../app/app-context.js';
 import { resolveDocumentHistoryIpc } from './document-history-ipc.js';
 import {
     applySaveResultToHistory,
@@ -243,48 +243,9 @@ export class DocumentHistoryManager {
     }
 
     async restoreBoardWhenReady(data) {
-        const performBoardRestore = () => {
-            logger.debug('Dispatching restore-board-state', { elements: data.elements.length });
-            window.dispatchEvent(new CustomEvent(APP_EVENTS.RESTORE_BOARD_STATE, {
-                detail: {
-                    elements: data.elements,
-                    viewport: data.viewport
-                }
-            }));
-        };
-
-        if (getAppContext().board) {
-            performBoardRestore();
-            this.completeRestore({ restored: true });
-            return;
-        }
-
-        logger.debug('Board not ready. Waiting for board-ready event...');
-        await new Promise((resolve) => {
-            let settled = false;
-
-            const finish = () => {
-                if (settled) return;
-                settled = true;
-                window.removeEventListener(APP_EVENTS.BOARD_READY, onBoardReady);
-                this.completeRestore({ restored: true });
-                resolve();
-            };
-
-            const onBoardReady = () => {
-                logger.debug('Board ready signal received. Proceeding with restore.');
-                performBoardRestore();
-                finish();
-            };
-
-            window.addEventListener(APP_EVENTS.BOARD_READY, onBoardReady);
-            setTimeout(() => {
-                if (!settled) {
-                    logger.warn('Board restore timed out. FORCE ENABLING auto-save but checking element count.');
-                    finish();
-                }
-            }, 5000);
-        });
+        logger.debug('Restoring board state', { elements: data.elements.length });
+        restoreBoardState({ elements: data.elements, viewport: data.viewport });
+        this.completeRestore({ restored: true });
     }
 
     restorePagePosition(md5, data) {

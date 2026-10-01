@@ -1,3 +1,5 @@
+import { APP_EVENTS } from '../core/event-names.js';
+
 const DEFAULT_CONTEXT = {
     currentBook: {
         md5: null,
@@ -12,6 +14,7 @@ const DEFAULT_CONTEXT = {
     annotationList: null,
     board: null,
     pendingRestore: null,
+    pendingBoardRestore: null,
     pendingDocumentImport: null,
     openProjectFile: null,
     getProjectFiles: null,
@@ -51,6 +54,29 @@ export function setAppService(key, value) {
     const context = getAppContext();
     context[key] = value;
     return value;
+}
+
+export function restoreBoardState(payload) {
+    const context = getAppContext();
+    if (!context.board) {
+        context.pendingBoardRestore = payload;
+        return false;
+    }
+
+    window.dispatchEvent(new CustomEvent(APP_EVENTS.RESTORE_BOARD_STATE, { detail: payload }));
+    return true;
+}
+
+export function flushPendingBoardRestore() {
+    const context = getAppContext();
+    if (!context.board || !context.pendingBoardRestore) {
+        return false;
+    }
+
+    const payload = context.pendingBoardRestore;
+    context.pendingBoardRestore = null;
+    window.dispatchEvent(new CustomEvent(APP_EVENTS.RESTORE_BOARD_STATE, { detail: payload }));
+    return true;
 }
 
 export function updateCurrentBook(patch) {

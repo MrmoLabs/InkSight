@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { APP_EVENTS } from '../event-names.js';
+import { flushPendingBoardRestore } from '../../app/app-context.js';
 
 function createInksightState(overrides = {}) {
     return {
@@ -212,8 +213,7 @@ describe('DocumentHistoryManager', () => {
             window.removeEventListener(APP_EVENTS.RESTORE_BOARD_STATE, restoreBoardListener);
         });
 
-        it('waits for board-ready before dispatching board restore when board is unavailable', async () => {
-            vi.useFakeTimers();
+        it('keeps board restore queued until the deferred canvas becomes ready', async () => {
             window.inksight.board = null;
 
             const restoreBoardListener = vi.fn();
@@ -229,9 +229,11 @@ describe('DocumentHistoryManager', () => {
 
             await manager.restoreState('book-md5');
             expect(restoreBoardListener).not.toHaveBeenCalled();
+            expect(manager.isStatsRestored).toBe(true);
 
             window.dispatchEvent(new CustomEvent(APP_EVENTS.BOARD_READY));
-            await Promise.resolve();
+            window.inksight.board = { children: [] };
+            expect(flushPendingBoardRestore()).toBe(true);
 
             expect(restoreBoardListener).toHaveBeenCalled();
             expect(manager.isStatsRestored).toBe(true);

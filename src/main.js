@@ -20,6 +20,7 @@ import { createSearchController } from './app/search-controller.js';
 import { createLogger } from './core/logger.js';
 import { buildProjectHomeModel, renderProjectHome as renderProjectHomeMarkup } from './app/project-home.js';
 import { createReaderAiController } from './app/reader-ai-controller.js';
+import { createLazyInitializer } from './app/lazy-initializer.js';
 import { initializeI18n, LOCALE_CHANGED_EVENT, t } from './i18n/index.js';
 import { aiConfigManager } from './core/ai-config-manager.js';
 import { chatComplete } from './core/ai-client.js';
@@ -166,6 +167,7 @@ const NOTES_SPLIT_WIDTH_KEY = 'inksight:notes-split-width';
 const projectWorkspace = createProjectWorkspaceController({
     localStorage,
     sessionStorage,
+    ensureBoardReady: () => ensureDrawnixBoard(),
     saveStatusIndicator: elements.saveStatusIndicator,
     renderFileList: () => renderFileList(),
     renderProjectHome: () => renderProjectHome()
@@ -233,10 +235,39 @@ const recoveryWorkbench = createRecoveryWorkbenchController({
     showValidation: () => recoveryWorkbench.showRecoveryValidation()
 });
 
+let drawnixViewInstance = null;
+
 async function createDrawnixView(container) {
+    if (drawnixViewInstance) {
+        return drawnixViewInstance;
+    }
     const { DrawnixView } = await import('./mindmap/drawnix-view.js');
-    return new DrawnixView(container);
+    drawnixViewInstance = new DrawnixView(container);
+    return drawnixViewInstance;
 }
+
+const ensureDrawnixBoard = createLazyInitializer(async () => {
+    await createDrawnixView(elements.mindmapContainer);
+    if (getAppContext().board) {
+        return getAppContext().board;
+    }
+
+    return new Promise((resolve, reject) => {
+        const timeout = window.setTimeout(() => {
+            window.removeEventListener(APP_EVENTS.BOARD_READY, handleBoardReady);
+            reject(new Error('The canvas did not become ready in time.'));
+        }, 15000);
+        const handleBoardReady = () => {
+            window.clearTimeout(timeout);
+            window.removeEventListener(APP_EVENTS.BOARD_READY, handleBoardReady);
+            resolve(getAppContext().board);
+        };
+        window.addEventListener(APP_EVENTS.BOARD_READY, handleBoardReady, { once: true });
+        if (getAppContext().board) {
+            handleBoardReady();
+        }
+    });
+});
 
 function registerCleanup(cleanup) {
     return cleanup;
@@ -741,6 +772,16 @@ function applyWorkspaceLayout(mode, { notesView } = {}) {
 
 function setWorkspaceMode(mode, options = {}) {
     const nextMode = ['reading', 'capture', 'map'].includes(mode) ? mode : 'reading';
+    if (nextMode === 'map') {
+        void ensureDrawnixBoard().catch((error) => {
+            logger.error('Failed to initialize the mind map canvas', error);
+            emitAppNotification({
+                message: t('mindmap.loadFailed', { message: error.message }),
+                level: 'error'
+            });
+        });
+    }
+
     if (state.workspaceMode === nextMode && !options.force) {
         return;
     }
@@ -898,7 +939,6 @@ async function init() {
         },
         hooks: {
             updateToolbarSummary,
-            createDrawnixView,
             workspaceModeReadingInit: () => setWorkspaceMode('reading', { force: true }),
             setupEventListeners: ({ splitView: nextSplitView, outlineSidebar: nextOutlineSidebar, annotationList: nextAnnotationList }) => {
                 splitView = nextSplitView;

@@ -3,7 +3,7 @@ import { Drawnix } from '@drawnix/drawnix';
 import { Transforms, PlaitBoard,
     BoardTransforms
 } from '@plait/core';
-import { getAppContext, setAppService } from '../app/app-context.js';
+import { flushPendingBoardRestore, getAppContext, setAppService } from '../app/app-context.js';
 import { registerEventListeners } from '../app/event-listeners.js';
 import { cardSystem } from '../core/card-system.js';
 import { sanitizeViewport } from './drawnix-board-state.js';
@@ -362,6 +362,7 @@ export const DrawnixBoardComponent = () => {
         // Signal that board is ready for restoring data
         logger.debug('Board initialized and ready');
         window.dispatchEvent(new CustomEvent(APP_EVENTS.BOARD_READY));
+        flushPendingBoardRestore();
 
         // Add click listener for jump-to-source
         const container = PlaitBoard.getBoardContainer(b);

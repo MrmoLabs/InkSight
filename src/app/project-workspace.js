@@ -1,7 +1,7 @@
 import { emitAppNotification } from '../ui/app-notifications.js';
 import { createLogger } from '../core/logger.js';
 import { t } from '../i18n/index.js';
-import { getAppContext, setAppService } from './app-context.js';
+import { getAppContext, restoreBoardState, setAppService } from './app-context.js';
 import {
     formatAutosaveTime,
     loadProjectSnapshotMeta,
@@ -25,7 +25,6 @@ import { restoreInksightPersistence } from '../inksight-file/inksight-file-resto
 import { loadRuntimeProjectSnapshot, saveRuntimeProjectSnapshot } from '../inksight-file/inksight-runtime-project-io.js';
 import { listRecentProjects, recordRecentProject } from './recent-projects.js';
 import { exportWorkspaceArtifact } from './workspace-export.js';
-import { APP_EVENTS } from '../core/event-names.js';
 import { modalManager } from '../ui/modal-manager.js';
 
 const logger = createLogger('ProjectWorkspace');
@@ -46,7 +45,8 @@ export function createProjectWorkspaceController({
     sessionStorage,
     saveStatusIndicator,
     renderFileList,
-    renderProjectHome = null
+    renderProjectHome = null,
+    ensureBoardReady = null
 }) {
     let projectAutosaveIntervalId = null;
     let isProjectAutosaveRunning = false;
@@ -59,6 +59,25 @@ export function createProjectWorkspaceController({
         snapshotHistory: [],
         recentProjects: listRecentProjects(localStorage)
     };
+
+    async function ensureBoardAvailable() {
+        if (getAppContext().board) {
+            return true;
+        }
+        if (typeof ensureBoardReady !== 'function') {
+            return false;
+        }
+        try {
+            await ensureBoardReady();
+        } catch (error) {
+            logger.error('Could not initialize the mind map canvas', error);
+            emitAppNotification({
+                message: t('mindmap.loadFailed', { message: error.message }),
+                level: 'error'
+            });
+        }
+        return Boolean(getAppContext().board);
+    }
 
     function refreshRecentProjects() {
         projectStatusState.recentProjects = listRecentProjects(localStorage);
@@ -133,13 +152,11 @@ export function createProjectWorkspaceController({
         setAppService('currentProjectDirectoryHandle', null);
         setAppService('currentProjectId', result.projectId || appContext.currentProjectId);
 
-        window.dispatchEvent(new CustomEvent(APP_EVENTS.RESTORE_BOARD_STATE, {
-            detail: {
-                elements: result.payload.elements,
-                viewport: result.payload.viewport,
-                theme: result.payload.theme
-            }
-        }));
+        restoreBoardState({
+            elements: result.payload.elements,
+            viewport: result.payload.viewport,
+            theme: result.payload.theme
+        });
 
         restoreInksightPersistence(result.payload, appContext, {
             onBookMismatch: ({ bookName }) => {
@@ -374,11 +391,11 @@ export function createProjectWorkspaceController({
         isProjectAutosaveRunning = true;
 
         try {
-            const appContext = getAppContext();
-            const board = appContext.board;
-            if (!board) {
+            if (!await ensureBoardAvailable()) {
                 return false;
             }
+            const appContext = getAppContext();
+            const board = appContext.board;
 
             if (forceExport) {
                 showSaveStatus('saving', t('status.exporting'), 0);
@@ -440,6 +457,14 @@ export function createProjectWorkspaceController({
     }
 
     async function promptOpenProject() {
+        if (!await ensureBoardAvailable()) {
+            emitAppNotification({
+                title: t('notify.openNotReady.title'),
+                message: t('notify.openNotReady.message'),
+                level: 'warning'
+            });
+            return;
+        }
         const openProject = getAppContext().openProjectFile;
         if (typeof openProject === 'function') {
             try {
@@ -471,6 +496,14 @@ export function createProjectWorkspaceController({
     }
 
     async function createProjectSnapshot() {
+        if (!await ensureBoardAvailable()) {
+            emitAppNotification({
+                title: t('notify.snapshotNotReady.title'),
+                message: t('notify.snapshotNotReady.message'),
+                level: 'warning'
+            });
+            return false;
+        }
         const board = getAppContext().board;
         if (!board) {
             emitAppNotification({
@@ -496,6 +529,14 @@ export function createProjectWorkspaceController({
     }
 
     async function promptSaveProject() {
+        if (!await ensureBoardAvailable()) {
+            emitAppNotification({
+                title: t('notify.openNotReady.title'),
+                message: t('notify.openNotReady.message'),
+                level: 'warning'
+            });
+            return;
+        }
         const board = getAppContext().board;
         if (board) {
             let payload = null;

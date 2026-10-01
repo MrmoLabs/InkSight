@@ -79,6 +79,12 @@ CSS. The test suite passes, and the production preview opens successfully.
 
 ### Batch 6: Defer Canvas Mounting
 
+Status: implemented with a shared retryable lazy initializer. The canvas is no
+longer instantiated during application bootstrap; it loads on the first Map
+mode transition or when a save/open operation needs a live board. Restore
+payloads are queued until the canvas becomes ready, so the reading-only boot
+can preserve map data without mounting the canvas first.
+
 Design: do not instantiate the Drawnix canvas during application bootstrap.
 Load and mount it on the first transition to Map mode, keep one shared
 initialization promise, and allow retry after a failed load. This keeps the

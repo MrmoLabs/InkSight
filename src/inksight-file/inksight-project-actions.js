@@ -182,6 +182,8 @@ export async function openProjectFile(board, listRender = null) {
         }
     });
 
+    setAppService('workspaceSnapshotRestored', true);
+
     if (projectFiles.length) {
         await appContext.hydrateProjectFiles?.(projectFiles, {
             openCurrentBookId: data.bookId || null

@@ -1,6 +1,9 @@
 import { buildInksightFilePayload } from './inksight-file-snapshot.js';
 import { bundleProjectData, hydrateProjectData } from './inksight-project-bundle.js';
 import { resolveDocumentHistoryIpc } from '../core/document-history-ipc.js';
+import { createLogger } from '../core/logger.js';
+
+const logger = createLogger('RuntimeProjectIO');
 
 async function serializeBinaryEntries(entries = [], fileKey) {
     const results = [];
@@ -78,20 +81,7 @@ export async function saveRuntimeProjectSnapshot({
     };
 }
 
-export async function loadRuntimeProjectSnapshot({ runtimeIdentity = {}, snapshotId = null } = {}) {
-    const ipc = resolveDocumentHistoryIpc();
-    if (!ipc?.loadRuntimeProject) {
-        return null;
-    }
-
-    const result = await ipc.loadRuntimeProject({
-        ...runtimeIdentity,
-        snapshotId
-    });
-    if (!result?.success || !result?.manifest) {
-        return null;
-    }
-
+async function hydrateRuntimeSnapshotResult(result) {
     const binaryMap = new Map((result.files || []).map((entry) => [entry.path, entry]));
     const hydrated = await hydrateProjectData({
         manifest: result.manifest,
@@ -110,5 +100,61 @@ export async function loadRuntimeProjectSnapshot({ runtimeIdentity = {}, snapsho
         payload: hydrated.payload,
         projectFiles: hydrated.projectFiles,
         cleanup: hydrated.cleanup
+    };
+}
+
+export async function loadRuntimeProjectSnapshot({ runtimeIdentity = {}, snapshotId = null } = {}) {
+    const ipc = resolveDocumentHistoryIpc();
+    if (!ipc?.loadRuntimeProject) {
+        return { success: false, notFound: false, error: 'Runtime project storage is not available.' };
+    }
+
+    const result = await ipc.loadRuntimeProject({
+        ...runtimeIdentity,
+        snapshotId
+    });
+    if (result?.success && result?.manifest) {
+        try {
+            return await hydrateRuntimeSnapshotResult(result);
+        } catch (error) {
+            if (snapshotId) {
+                throw error;
+            }
+            logger.warn('Latest runtime snapshot is invalid; trying retained history', error);
+        }
+    } else if (snapshotId || result?.notFound === true) {
+        return {
+            success: false,
+            notFound: result?.notFound === true,
+            error: result?.error || 'Runtime project could not be loaded.'
+        };
+    }
+
+    if (!snapshotId && ipc.listRuntimeProjectSnapshots) {
+        const historyResult = await ipc.listRuntimeProjectSnapshots(runtimeIdentity);
+        const candidates = (historyResult?.snapshots || [])
+            .filter((entry) => entry?.snapshotId && entry.snapshotId !== result?.snapshotId);
+        for (const candidate of candidates) {
+            try {
+                const historySnapshot = await ipc.loadRuntimeProject({
+                    ...runtimeIdentity,
+                    snapshotId: candidate.snapshotId
+                });
+                if (historySnapshot?.success && historySnapshot.manifest) {
+                    return {
+                        ...await hydrateRuntimeSnapshotResult(historySnapshot),
+                        recoveredFromHistory: true
+                    };
+                }
+            } catch (error) {
+                logger.warn(`Retained runtime snapshot ${candidate.snapshotId} could not be hydrated`, error);
+            }
+        }
+    }
+
+    return {
+        success: false,
+        notFound: false,
+        error: result?.error || 'No valid runtime project snapshot could be recovered.'
     };
 }

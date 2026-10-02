@@ -125,7 +125,52 @@ describe('project-workspace', () => {
             [{ id: 'doc-2', name: 'Doc.pdf', type: 'application/pdf' }],
             { openCurrentBookId: 'doc-2' }
         );
+        expect(window.inksight.workspaceSnapshotRestored).toBe(true);
         expect(document.getElementById('save-status').textContent).toContain('Recovered server workspace');
+    });
+
+    it('blocks project autosave while a runtime workspace restore is in flight', async () => {
+        let finishLoad;
+        loadRuntimeProjectSnapshot.mockReturnValue(new Promise((resolve) => {
+            finishLoad = resolve;
+        }));
+        const controller = createController();
+
+        const restoring = controller.restoreRuntimeWorkspace();
+        while (!finishLoad) {
+            await Promise.resolve();
+        }
+
+        expect(await controller.performProjectAutosave()).toBe(false);
+        expect(saveRuntimeProjectSnapshot).not.toHaveBeenCalled();
+
+        finishLoad(null);
+        await restoring;
+    });
+
+    it('pauses background autosave after a damaged snapshot and allows a manual replacement', async () => {
+        loadRuntimeProjectSnapshot.mockResolvedValue({
+            success: false,
+            notFound: false,
+            error: 'Invalid project asset size'
+        });
+        saveRuntimeProjectSnapshot.mockResolvedValue({
+            success: true,
+            projectDir: 'D:/runtime/project',
+            snapshotId: 'snapshot-replacement',
+            savedAt: '2026-04-16T10:20:00.000Z',
+            summary: {}
+        });
+        const controller = createController();
+
+        expect(await controller.restoreRuntimeWorkspace()).toBe(false);
+        expect(window.inksight.workspaceRestoreFailed).toBe(true);
+        expect(await controller.performProjectAutosave()).toBe(false);
+        expect(saveRuntimeProjectSnapshot).not.toHaveBeenCalled();
+
+        expect(await controller.performProjectAutosave({ notify: true })).toBe(true);
+        expect(window.inksight.workspaceRestoreFailed).toBe(false);
+        expect(saveRuntimeProjectSnapshot).toHaveBeenCalledTimes(1);
     });
 
     it('restores a selected snapshot from project history', async () => {

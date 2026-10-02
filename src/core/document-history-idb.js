@@ -9,6 +9,13 @@ const STORE_MD5_INDEX = 'md5-index';
 const STORE_SNAPSHOTS = 'runtime-snapshots';
 const SNAPSHOT_HISTORY_LIMIT = 20;
 
+function createSnapshotId(projectName) {
+    const suffix = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : Math.random().toString(36).slice(2, 10);
+    return `${Date.now()}-${slugify(projectName)}-${suffix}`;
+}
+
 /**
  * Extract the book md5 from an auto-save payload so findSaveByMd5 can
  * discover the file later. Exported for testing.
@@ -146,7 +153,7 @@ export function createIdbFallbackIpc() {
             try {
                 const { projectName, note, manifest, assetEntries = [], documentEntries = [] } = payload;
                 const savedAt = new Date().toISOString();
-                const snapshotId = `${Date.now()}-${slugify(projectName)}`;
+                const snapshotId = createSnapshotId(projectName);
                 const meta = {
                     userId: payload.userId || null,
                     sessionId: payload.sessionId || null,
@@ -163,8 +170,29 @@ export function createIdbFallbackIpc() {
                 };
                 const record = { meta, manifest, assetEntries, documentEntries, identity: meta };
 
-                await idbPut(STORE_SNAPSHOTS, `current:${meta.projectId || 'default'}`, record);
-                await idbPut(STORE_SNAPSHOTS, `history:${snapshotId}`, record);
+                const projectKey = meta.projectId || 'default';
+                await withStore(STORE_SNAPSHOTS, 'readwrite', (store) => {
+                    // Keep the full (potentially large) snapshot once. The current
+                    // workspace entry is only a pointer into history.
+                    store.put(record, `history:${snapshotId}`);
+                    store.put({ snapshotId, projectId: meta.projectId }, `current:${projectKey}`);
+
+                    // Prune within the same transaction so the configured history
+                    // limit also bounds IndexedDB usage, rather than only the UI.
+                    const request = store.getAll();
+                    request.onsuccess = () => {
+                        const history = request.result
+                            .filter((item) => item?.meta?.snapshotId && item.meta.projectId === meta.projectId)
+                            .sort((left, right) => {
+                                if (left.meta.snapshotId === snapshotId) return -1;
+                                if (right.meta.snapshotId === snapshotId) return 1;
+                                return String(right.meta.savedAt).localeCompare(String(left.meta.savedAt));
+                            });
+                        history.slice(SNAPSHOT_HISTORY_LIMIT).forEach((item) => {
+                            store.delete(`history:${item.meta.snapshotId}`);
+                        });
+                    };
+                });
 
                 return {
                     success: true,
@@ -189,14 +217,22 @@ export function createIdbFallbackIpc() {
             try {
                 const identity = payload.runtimeIdentity || payload;
                 const records = await idbGetAll(STORE_SNAPSHOTS);
+                const uniqueSnapshots = new Map();
+                records
+                    .filter((record) => record?.meta?.snapshotId)
+                    .filter((record) => !identity?.projectId || record.meta.projectId === identity.projectId)
+                    .forEach((record) => {
+                        if (!uniqueSnapshots.has(record.meta.snapshotId)) {
+                            uniqueSnapshots.set(record.meta.snapshotId, record.meta);
+                        }
+                    });
+
                 return {
                     success: true,
-                    snapshots: records
-                        .filter((record) => record?.meta?.snapshotId)
-                        .filter((record) => !identity?.projectId || record.meta.projectId === identity.projectId)
-                        .sort((a, b) => String(b.meta.savedAt).localeCompare(String(a.meta.savedAt)))
+                    snapshots: [...uniqueSnapshots.values()]
+                        .sort((a, b) => String(b.savedAt).localeCompare(String(a.savedAt)))
                         .slice(0, SNAPSHOT_HISTORY_LIMIT)
-                        .map((record) => ({ ...record.meta }))
+                        .map((meta) => ({ ...meta }))
                 };
             } catch (error) {
                 logger.error('listRuntimeProjectSnapshots failed', error);
@@ -208,13 +244,37 @@ export function createIdbFallbackIpc() {
             try {
                 const identity = payload.runtimeIdentity || payload;
                 let record;
+                let hadCurrentPointer = false;
                 if (payload.snapshotId) {
                     record = await idbGet(STORE_SNAPSHOTS, `history:${payload.snapshotId}`);
+                    if (!record) {
+                        return { success: false, notFound: true, error: 'No runtime snapshot found' };
+                    }
                 } else {
                     record = await idbGet(STORE_SNAPSHOTS, `current:${identity?.projectId || 'default'}`);
+                    hadCurrentPointer = Boolean(record);
+                    if (record?.snapshotId) {
+                        const snapshot = await idbGet(STORE_SNAPSHOTS, `history:${record.snapshotId}`);
+                        record = snapshot?.manifest ? snapshot : null;
+                    }
+                    if (!record?.manifest) {
+                        const records = await idbGetAll(STORE_SNAPSHOTS);
+                        record = records
+                            .filter((item) => item?.meta?.snapshotId)
+                            .filter((item) => !identity?.projectId || item.meta.projectId === identity.projectId)
+                            .sort((left, right) => String(right.meta.savedAt).localeCompare(String(left.meta.savedAt)))[0];
+                    }
                 }
                 if (!record?.manifest) {
-                    return { success: false, error: 'No runtime snapshot found' };
+                    const hasProjectRecords = (await idbGetAll(STORE_SNAPSHOTS)).some((item) => (
+                        item?.meta?.snapshotId
+                        && (!identity?.projectId || item.meta.projectId === identity.projectId)
+                    ));
+                    return {
+                        success: false,
+                        notFound: !hadCurrentPointer && !hasProjectRecords,
+                        error: 'No valid runtime snapshot found'
+                    };
                 }
                 return {
                     success: true,

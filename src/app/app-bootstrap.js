@@ -88,10 +88,7 @@ export async function initAppBootstrap({
         hooks.setupResponsiveLayout({ splitView, outlineSidebar });
         hooks.setupFloatingSelectionToolbar();
         registerCleanup(mountAppNotifications(elements.appNotifications));
-        services.projectWorkspace.restartProjectAutosave();
         hooks.workspaceModeReadingInit();
-        await services.projectWorkspace.restoreRuntimeWorkspace();
-
         registerCleanup(registerEventListeners([
             {
                 target: window,
@@ -99,6 +96,12 @@ export async function initAppBootstrap({
                 handler: hooks.handleRestorePagePosition
             }
         ]));
+        try {
+            await services.projectWorkspace.restoreRuntimeWorkspace();
+        } finally {
+            // Do not persist the blank bootstrap state over a slow restore.
+            services.projectWorkspace.restartProjectAutosave();
+        }
 
         return { splitView, outlineSidebar, annotationList };
     } catch (error) {

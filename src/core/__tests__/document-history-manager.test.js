@@ -175,6 +175,72 @@ describe('DocumentHistoryManager', () => {
             expect(manager.history['book-md5'].saveFilename).toBe('Recovered.inksight');
         });
 
+        it('rejects a save payload whose MD5 belongs to a different book', async () => {
+            manager.history['book-md5'] = { saveFilename: 'Book.inksight' };
+            mockIpc.loadFile.mockResolvedValue({
+                success: true,
+                content: JSON.stringify({
+                    bookMd5: 'other-book-md5',
+                    elements: [{ id: 'wrong-book-node' }],
+                    cards: [['wrong-book-card', { id: 'wrong-book-card' }]]
+                })
+            });
+
+            await manager.restoreState('book-md5');
+
+            expect(window.inksight.cardSystem.restorePersistenceData).not.toHaveBeenCalled();
+            expect(manager.hasPendingRestore).toBe(false);
+            expect(manager.isStatsRestored).toBe(false);
+        });
+
+        it('uses per-book history only for reading position after a workspace snapshot restore', async () => {
+            const restorePageListener = vi.fn();
+            window.addEventListener(APP_EVENTS.RESTORE_PAGE_POSITION, restorePageListener);
+            manager.history['book-md5'] = { saveFilename: 'Book.inksight' };
+            mockIpc.loadFile.mockResolvedValue({
+                success: true,
+                content: JSON.stringify({
+                    bookMd5: 'book-md5',
+                    lastPage: 12,
+                    elements: [{ id: 'stale-node' }],
+                    cards: [['stale-card', { id: 'stale-card' }]]
+                })
+            });
+
+            await manager.restoreState('book-md5', { restoreWorkspaceData: false });
+
+            expect(restorePageListener).toHaveBeenCalled();
+            expect(window.inksight.cardSystem.restorePersistenceData).not.toHaveBeenCalled();
+            expect(manager.isStatsRestored).toBe(true);
+            window.removeEventListener(APP_EVENTS.RESTORE_PAGE_POSITION, restorePageListener);
+        });
+
+        it('does not apply a restore that finishes after the active book changes', async () => {
+            manager.history['book-md5'] = { saveFilename: 'Book.inksight' };
+            let finishLoad;
+            mockIpc.loadFile.mockReturnValue(new Promise((resolve) => {
+                finishLoad = resolve;
+            }));
+
+            const restoring = manager.restoreState('book-md5');
+            while (!mockIpc.loadFile.mock.calls.length) {
+                await Promise.resolve();
+            }
+            window.inksight.currentBook.md5 = 'new-book-md5';
+            finishLoad({
+                success: true,
+                content: JSON.stringify({
+                    bookMd5: 'book-md5',
+                    elements: [{ id: 'stale-node' }],
+                    cards: [['stale-card', { id: 'stale-card' }]]
+                })
+            });
+            await restoring;
+
+            expect(window.inksight.cardSystem.restorePersistenceData).not.toHaveBeenCalled();
+            expect(manager.isStatsRestored).toBe(false);
+        });
+
         it('restores page position, cards, highlights, and board state when board is ready', async () => {
             const restorePageListener = vi.fn();
             const restoreBoardListener = vi.fn();

@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, safeStorage, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { randomUUID } = require('crypto');
 const { pathToFileURL } = require('url');
 const { assertSafePathSegment, resolvePathWithin } = require('./path-security.cjs');
 const { buildAiConfigWrite, readAiConfigFile } = require('./ai-config-storage.cjs');
@@ -121,6 +122,7 @@ app.on('window-all-closed', () => {
 const RUNTIME_PROJECT_MANIFEST = 'project.json';
 const RUNTIME_PROJECT_META = 'meta.json';
 const RUNTIME_PROJECT_HISTORY_DIR = 'history';
+const RUNTIME_PROJECT_CURRENT_POINTER = 'current.json';
 const RUNTIME_PROJECT_HISTORY_LIMIT = 10;
 
 // Get the save directory path (Project Root/files/saves)
@@ -265,7 +267,7 @@ const createSnapshotSummary = (manifest, meta = {}) => {
     };
 };
 
-const trimSnapshotHistory = (historyRoot) => {
+const trimSnapshotHistory = (historyRoot, currentSnapshotId = null) => {
     if (!fs.existsSync(historyRoot)) {
         return;
     }
@@ -284,9 +286,13 @@ const trimSnapshotHistory = (historyRoot) => {
                     savedAt = 0;
                 }
             }
-            return { snapshotDir, savedAt };
+            return { snapshotDir, snapshotId: entry.name, savedAt };
         })
-        .sort((left, right) => right.savedAt - left.savedAt);
+        .sort((left, right) => {
+            if (left.snapshotId === currentSnapshotId) return -1;
+            if (right.snapshotId === currentSnapshotId) return 1;
+            return right.savedAt - left.savedAt;
+        });
 
     snapshotDirs.slice(RUNTIME_PROJECT_HISTORY_LIMIT).forEach(({ snapshotDir }) => {
         fs.rmSync(snapshotDir, { recursive: true, force: true });
@@ -366,9 +372,99 @@ const cleanupRuntimeSubdir = (projectDir, subdirName, expectedPaths) => {
     }
 };
 
+const isRuntimeSnapshotComplete = (snapshotDir) => {
+    try {
+        const manifestPath = path.join(snapshotDir, RUNTIME_PROJECT_MANIFEST);
+        const metaPath = path.join(snapshotDir, RUNTIME_PROJECT_META);
+        if (!fs.existsSync(manifestPath) || !fs.existsSync(metaPath)) {
+            return false;
+        }
+
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+        const meta = JSON.parse(fs.readFileSync(metaPath, 'utf-8'));
+        if (manifest?.kind !== 'inksight-project'
+            || manifest.version !== 1
+            || manifest.payload?.type !== 'drawnix'
+            || typeof manifest.payload.version !== 'number'
+            || !Array.isArray(manifest.payload.elements)
+            || !manifest.payload.viewport
+            || typeof manifest.payload.viewport !== 'object'
+            || !meta || typeof meta !== 'object'
+            || !Array.isArray(manifest.assets)
+            || !Array.isArray(manifest.documents)) {
+            return false;
+        }
+
+        for (const entry of [...manifest.assets, ...manifest.documents]) {
+            if (typeof entry?.path !== 'string' || !entry.path) {
+                return false;
+            }
+            const absolutePath = resolvePathWithin(snapshotDir, entry.path, 'Manifest file path');
+            if (!fs.existsSync(absolutePath) || !fs.statSync(absolutePath).isFile()) {
+                return false;
+            }
+            const expectedSize = Number(entry.size);
+            if (Number.isFinite(expectedSize) && fs.statSync(absolutePath).size !== expectedSize) {
+                return false;
+            }
+        }
+        return true;
+    } catch {
+        return false;
+    }
+};
+
+const resolveCurrentRuntimeSnapshotDir = (projectDir) => {
+    try {
+        const pointerPath = path.join(projectDir, RUNTIME_PROJECT_CURRENT_POINTER);
+        if (!fs.existsSync(pointerPath)) {
+            return null;
+        }
+        const pointer = JSON.parse(fs.readFileSync(pointerPath, 'utf-8'));
+        const snapshotId = assertSafePathSegment(pointer.snapshotId, 'Snapshot ID');
+        const snapshotDir = resolvePathWithin(
+            path.join(projectDir, RUNTIME_PROJECT_HISTORY_DIR),
+            snapshotId,
+            'Snapshot path'
+        );
+        return isRuntimeSnapshotComplete(snapshotDir) ? snapshotDir : null;
+    } catch {
+        return null;
+    }
+};
+
+const resolveNewestValidHistorySnapshotDir = (projectDir) => {
+    const historyRoot = path.join(projectDir, RUNTIME_PROJECT_HISTORY_DIR);
+    if (!fs.existsSync(historyRoot)) {
+        return null;
+    }
+
+    return fs.readdirSync(historyRoot, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => {
+            const snapshotDir = path.join(historyRoot, entry.name);
+            if (!isRuntimeSnapshotComplete(snapshotDir)) {
+                return null;
+            }
+            try {
+                const meta = JSON.parse(fs.readFileSync(path.join(snapshotDir, RUNTIME_PROJECT_META), 'utf-8'));
+                return { snapshotDir, savedAt: Date.parse(meta.savedAt || 0) || 0 };
+            } catch {
+                return null;
+            }
+        })
+        .filter(Boolean)
+        .sort((left, right) => right.savedAt - left.savedAt)[0]?.snapshotDir || null;
+};
+
 const resolveLatestRuntimeProjectDir = ({ userId, sessionId, projectId }) => {
     const preferredDir = getRuntimeProjectDir({ userId, sessionId, projectId });
-    if (fs.existsSync(path.join(preferredDir, RUNTIME_PROJECT_MANIFEST))) {
+    const preferredSnapshot = resolveCurrentRuntimeSnapshotDir(preferredDir)
+        || resolveNewestValidHistorySnapshotDir(preferredDir);
+    if (preferredSnapshot) {
+        return preferredSnapshot;
+    }
+    if (isRuntimeSnapshotComplete(preferredDir)) {
         return preferredDir;
     }
 
@@ -386,18 +482,19 @@ const resolveLatestRuntimeProjectDir = ({ userId, sessionId, projectId }) => {
             sessionId: sessionEntry.name,
             projectId
         });
-        const metaPath = path.join(candidateDir, RUNTIME_PROJECT_META);
-        const manifestPath = path.join(candidateDir, RUNTIME_PROJECT_MANIFEST);
-        if (!fs.existsSync(metaPath) || !fs.existsSync(manifestPath)) {
+        const validSnapshotDir = resolveCurrentRuntimeSnapshotDir(candidateDir)
+            || resolveNewestValidHistorySnapshotDir(candidateDir)
+            || (isRuntimeSnapshotComplete(candidateDir) ? candidateDir : null);
+        if (!validSnapshotDir) {
             continue;
         }
 
         try {
-            const meta = JSON.parse(fs.readFileSync(metaPath, 'utf-8'));
+            const meta = JSON.parse(fs.readFileSync(path.join(validSnapshotDir, RUNTIME_PROJECT_META), 'utf-8'));
             const savedAt = Date.parse(meta.savedAt || 0) || 0;
             if (!bestMatch || savedAt > bestMatch.savedAt) {
                 bestMatch = {
-                    dir: candidateDir,
+                    dir: validSnapshotDir,
                     savedAt
                 };
             }
@@ -550,15 +647,9 @@ handleTrustedIpc('save-runtime-project', async (event, payload = {}) => {
             documentCount: documentEntries.length
         };
         const writePayload = { manifest, assetEntries, documentEntries };
-        const { manifestPath, metaPath, summary, meta } = writeRuntimeSnapshot({
-            rootDir: projectDir,
-            payload: writePayload,
-            projectMeta: baseMeta
-        });
-
-        const snapshotId = `${Date.now()}-${slugifyRuntimeName(projectName, 'workspace')}`;
+        const snapshotId = `${Date.now()}-${process.pid}-${randomUUID()}-${slugifyRuntimeName(projectName, 'workspace')}`;
         const snapshotDir = path.join(historyRoot, snapshotId);
-        writeRuntimeSnapshot({
+        const { manifestPath, metaPath, summary, meta } = writeRuntimeSnapshot({
             rootDir: snapshotDir,
             payload: writePayload,
             projectMeta: baseMeta,
@@ -566,7 +657,20 @@ handleTrustedIpc('save-runtime-project', async (event, payload = {}) => {
                 snapshotId
             }
         });
-        trimSnapshotHistory(historyRoot);
+
+        // The current pointer is the commit point. A partial snapshot remains
+        // unreferenced, so startup can continue using the previous valid one.
+        writeFileAtomic(path.join(projectDir, RUNTIME_PROJECT_CURRENT_POINTER), JSON.stringify({
+            snapshotId,
+            savedAt: meta.savedAt
+        }, null, 2));
+        try {
+            trimSnapshotHistory(historyRoot, snapshotId);
+        } catch (error) {
+            // The pointer has already committed. Cleanup failure must not report
+            // the completed save as failed or encourage a duplicate retry.
+            console.warn('Runtime snapshot history cleanup failed:', error);
+        }
 
         return {
             success: true,
@@ -602,11 +706,10 @@ handleTrustedIpc('list-runtime-project-snapshots', async (event, payload = {}) =
             .filter((entry) => entry.isDirectory())
             .map((entry) => {
                 const snapshotDir = path.join(historyRoot, entry.name);
-                const metaPath = path.join(snapshotDir, RUNTIME_PROJECT_META);
-                if (!fs.existsSync(metaPath)) {
+                if (!isRuntimeSnapshotComplete(snapshotDir)) {
                     return null;
                 }
-
+                const metaPath = path.join(snapshotDir, RUNTIME_PROJECT_META);
                 const meta = JSON.parse(fs.readFileSync(metaPath, 'utf-8'));
                 return {
                     snapshotId: meta.snapshotId || entry.name,
@@ -647,9 +750,22 @@ handleTrustedIpc('load-runtime-project', async (event, payload = {}) => {
             )
             : resolveLatestRuntimeProjectDir({ userId, sessionId, projectId });
         if (!projectDir) {
+            if (snapshotId) {
+                return {
+                    success: false,
+                    notFound: true,
+                    error: 'Runtime project snapshot not found'
+                };
+            }
+            const projectRoot = getRuntimeProjectDir({ userId, sessionId, projectId });
+            const historyRoot = path.join(projectRoot, RUNTIME_PROJECT_HISTORY_DIR);
+            const hasStoredSnapshot = fs.existsSync(path.join(projectRoot, RUNTIME_PROJECT_CURRENT_POINTER))
+                || fs.existsSync(path.join(projectRoot, RUNTIME_PROJECT_MANIFEST))
+                || (fs.existsSync(historyRoot) && fs.readdirSync(historyRoot).length > 0);
             return {
                 success: false,
-                error: 'Runtime project not found'
+                notFound: !hasStoredSnapshot,
+                error: hasStoredSnapshot ? 'No valid runtime snapshot found' : 'Runtime project not found'
             };
         }
 

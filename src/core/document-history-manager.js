@@ -33,12 +33,14 @@ export class DocumentHistoryManager {
         this.ipcRenderer = null;
         this.history = {};
         this.autoSaveInterval = null;
+        this.isAutoSaveInFlight = false;
         this.currentMd5 = null;
         this.currentBookName = null;
         this.HISTORY_KEY = DOCUMENT_HISTORY_STORAGE_KEY;
         this.hasPendingRestore = false;
         this.isStatsRestored = true;
         this.initialElementCount = 0;
+        this.restoreToken = 0;
 
         this.init();
     }
@@ -120,8 +122,12 @@ export class DocumentHistoryManager {
             return; // Silent fail if not ready
         }
 
+        if (this.isAutoSaveInFlight) {
+            return;
+        }
+
         // SAFETY: Do not save if restore hasn't confirmed success
-        if (!this.isStatsRestored && this.hasPendingRestore) {
+        if (this.hasPendingRestore || !this.isStatsRestored) {
             logger.warn('Skipping auto-save: Restore pending or in progress.');
             return;
         }
@@ -130,6 +136,12 @@ export class DocumentHistoryManager {
             const board = appContext.board;
             if (!board) return;
 
+            const md5 = this.currentMd5;
+            const bookName = this.currentBookName;
+            if (!md5 || appContext.currentBook?.md5 !== md5) {
+                return;
+            }
+
             // SAFETY VALVE: Empty Board Protection
             // If we expected elements (from restore) but board is empty, DO NOT SAVE.
             if (this.initialElementCount > 0 && board.children.length === 0) {
@@ -137,25 +149,22 @@ export class DocumentHistoryManager {
                 return;
             }
 
-            const data = buildAutoSavePayload({
-                appContext,
-                board,
-                historyEntry: this.history[this.currentMd5]
-            });
+            const data = buildAutoSavePayload({ appContext, board, historyEntry: this.history[md5] });
 
             const jsonStr = JSON.stringify(data, null, 2);
 
             // Construct filename
-            const safeFileName = this.getSaveFilename(this.currentBookName);
+            const safeFileName = this.getSaveFilename(bookName);
 
             // Use IPC to save
+            this.isAutoSaveInFlight = true;
             const result = await this.ipcRenderer.saveFile(safeFileName, jsonStr);
 
             if (result.success) {
                 logger.debug('Auto-saved to', result.path);
                 applySaveResultToHistory({
                     history: this.history,
-                    md5: this.currentMd5,
+                    md5,
                     resultPath: result.path,
                     saveFilename: safeFileName
                 });
@@ -166,6 +175,8 @@ export class DocumentHistoryManager {
 
         } catch (e) {
             logger.error('Auto-save failed', e);
+        } finally {
+            this.isAutoSaveInFlight = false;
         }
     }
 
@@ -237,15 +248,26 @@ export class DocumentHistoryManager {
         return { filename: activeFilename, result };
     }
 
-    completeRestore({ restored = true } = {}) {
+    completeRestore({ restored = true, token = this.restoreToken } = {}) {
+        if (token !== this.restoreToken) {
+            return;
+        }
         this.isStatsRestored = restored;
         this.hasPendingRestore = false;
     }
 
-    async restoreBoardWhenReady(data) {
+    async restoreBoardWhenReady(data, md5, token) {
+        const currentBookMd5 = getAppContext()?.currentBook?.md5;
+        if (token !== this.restoreToken) {
+            return;
+        }
+        if (currentBookMd5 !== md5) {
+            this.completeRestore({ restored: false, token });
+            return;
+        }
         logger.debug('Restoring board state', { elements: data.elements.length });
-        restoreBoardState({ elements: data.elements, viewport: data.viewport });
-        this.completeRestore({ restored: true });
+        restoreBoardState({ elements: data.elements, viewport: data.viewport, expectedBookMd5: md5 });
+        this.completeRestore({ restored: true, token });
     }
 
     restorePagePosition(md5, data) {
@@ -278,52 +300,78 @@ export class DocumentHistoryManager {
         });
     }
 
-    async restoreState(md5) {
+    async restoreState(md5, { restoreWorkspaceData = true } = {}) {
         if (!md5 || !this.ipcRenderer) return;
+        const token = ++this.restoreToken;
         this.hasPendingRestore = true; // Mark restore start
+        this.isStatsRestored = false;
         this.initialElementCount = 0;   // Reset count
 
-        const filename = await this.determineRestoreFilename(md5);
-        if (!filename) {
-            logger.debug('No filename determined after all fallbacks. Assuming new document.');
-            this.completeRestore({ restored: true });
-            return;
-        }
-
         try {
+            const filename = await this.determineRestoreFilename(md5);
+            if (token !== this.restoreToken) {
+                return;
+            }
+            if (getAppContext()?.currentBook?.md5 !== md5) {
+                this.completeRestore({ restored: false, token });
+                return;
+            }
+            if (!filename) {
+                logger.debug('No filename determined after all fallbacks. Assuming new document.');
+                this.completeRestore({ restored: true, token });
+                return;
+            }
+
             const { result } = await this.loadRestorePayload(md5, filename);
+            if (token !== this.restoreToken) {
+                return;
+            }
+            if (getAppContext()?.currentBook?.md5 !== md5) {
+                this.completeRestore({ restored: false, token });
+                return;
+            }
 
             if (!result.success) {
                 logger.warn('All restore attempts failed. Assuming valid NEW document.');
-                this.completeRestore({ restored: true });
+                this.completeRestore({ restored: true, token });
                 return;
             }
 
             const data = JSON.parse(result.content);
-            validateInksightRestorePayload(data, {
+            const payloadMatchesBook = validateInksightRestorePayload(data, {
                 expectedMd5: md5,
                 onMismatch: ({ expectedMd5, actualMd5 }) => {
                     logger.warn('MD5 mismatch in save file', { expected: expectedMd5, actual: actualMd5 });
                 }
             });
+            if (!payloadMatchesBook) {
+                throw new Error('Saved document data belongs to a different book; restore was skipped.');
+            }
             this.restorePagePosition(md5, data);
+            if (!restoreWorkspaceData) {
+                this.completeRestore({ restored: true, token });
+                return;
+            }
             this.trackExpectedElements(data);
 
             // Restore Data
             const ag = getAppContext();
-            if (!ag) return;
+            if (!ag) {
+                this.completeRestore({ restored: false, token });
+                return;
+            }
             this.restorePersistenceState(data, ag);
 
             if (data.elements) {
-                void this.restoreBoardWhenReady(data);
+                void this.restoreBoardWhenReady(data, md5, token);
             } else {
-                this.completeRestore({ restored: true });
+                this.completeRestore({ restored: true, token });
             }
 
         } catch (e) {
             logger.error('Restore failed', e);
             // On hard failure, avoid auto-save to protect file
-            this.completeRestore({ restored: false });
+            this.completeRestore({ restored: false, token });
         }
     }
 }

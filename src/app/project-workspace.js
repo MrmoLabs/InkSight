@@ -49,6 +49,7 @@ export function createProjectWorkspaceController({
 }) {
     let projectAutosaveIntervalId = null;
     let isProjectAutosaveRunning = false;
+    let isRuntimeWorkspaceRestoring = false;
     let saveStatusHideTimeout = null;
 
     const projectStatusState = {
@@ -167,6 +168,10 @@ export function createProjectWorkspaceController({
             }
         });
 
+        // The project snapshot owns workspace data. Per-document recovery may
+        // still restore its reading position, but must not overlay this state.
+        setAppService('workspaceSnapshotRestored', true);
+
         if (result.projectFiles?.length) {
             await appContext.hydrateProjectFiles?.(result.projectFiles, {
                 openCurrentBookId: result.payload.bookId || null
@@ -175,6 +180,7 @@ export function createProjectWorkspaceController({
             renderFileList();
         }
 
+        setAppService('workspaceRestoreFailed', false);
         projectStatusState.lastSavedAt = result.savedAt ? Date.parse(result.savedAt) : projectStatusState.lastSavedAt;
         projectStatusState.lastMode = modeLabel;
         recordRecentProjectEntry({
@@ -211,6 +217,16 @@ export function createProjectWorkspaceController({
                 saveStatusIndicator.classList.remove('visible', 'success', 'error', 'saving');
             }, duration);
         }
+    }
+
+    function markWorkspaceRestoreFailed(error) {
+        setAppService('workspaceRestoreFailed', true);
+        logger.error('Workspace recovery failed; automatic saving is paused', error);
+        emitAppNotification({
+            title: t('notify.workspaceRestoreFailed.title'),
+            message: t('notify.workspaceRestoreFailed.message'),
+            level: 'error'
+        });
     }
 
     function restartProjectAutosave() {
@@ -266,6 +282,7 @@ export function createProjectWorkspaceController({
             ...(appContext.runtimeStorageInfo || {}),
             rootPath: result.projectDir || appContext.runtimeStorageInfo?.rootPath || null
         });
+        setAppService('workspaceRestoreFailed', false);
         await refreshProjectSnapshotHistory();
         recordRecentProjectEntry({
             projectId: runtimeIdentity.projectId,
@@ -279,21 +296,41 @@ export function createProjectWorkspaceController({
     }
 
     async function restoreRuntimeWorkspace() {
-        const runtimeIdentity = ensureProjectIdentity();
-        const result = await loadRuntimeProjectSnapshot({
-            runtimeIdentity
-        }).catch(() => null);
-
-        if (!result?.payload) {
+        if (isRuntimeWorkspaceRestoring) {
             return false;
         }
-        await refreshProjectSnapshotHistory();
-        return restoreWorkspacePayload(result, {
-            modeLabel: 'Server workspace',
-            successMessage: result.projectName
-                ? t('notify.recoveredServerNamed', { name: result.projectName })
-                : t('notify.recoveredServer')
-        });
+        isRuntimeWorkspaceRestoring = true;
+        try {
+            const runtimeIdentity = ensureProjectIdentity();
+            let result;
+            try {
+                result = await loadRuntimeProjectSnapshot({ runtimeIdentity });
+            } catch (error) {
+                markWorkspaceRestoreFailed(error);
+                return false;
+            }
+
+            if (!result?.payload) {
+                if (result && result.notFound !== true) {
+                    markWorkspaceRestoreFailed(new Error(result.error || 'The latest workspace snapshot is unavailable.'));
+                }
+                return false;
+            }
+            try {
+                await refreshProjectSnapshotHistory();
+                return await restoreWorkspacePayload(result, {
+                    modeLabel: 'Server workspace',
+                    successMessage: result.projectName
+                        ? t('notify.recoveredServerNamed', { name: result.projectName })
+                        : t('notify.recoveredServer')
+                });
+            } catch (error) {
+                markWorkspaceRestoreFailed(error);
+                return false;
+            }
+        } finally {
+            isRuntimeWorkspaceRestoring = false;
+        }
     }
 
     async function promptProjectHistory() {
@@ -360,29 +397,46 @@ export function createProjectWorkspaceController({
             return false;
         }
 
-        const result = await restoreProjectSnapshot({
-            runtimeIdentity,
-            snapshotId
-        }).catch(() => null);
-        if (!result?.payload) {
-            emitAppNotification({
-                title: t('notify.historyRestoreFailed.title'),
-                message: t('notify.historyRestoreFailed.message'),
-                level: 'error'
-            });
+        if (isRuntimeWorkspaceRestoring) {
             return false;
         }
+        isRuntimeWorkspaceRestoring = true;
+        try {
+            const result = await restoreProjectSnapshot({
+                runtimeIdentity,
+                snapshotId
+            }).catch(() => null);
+            if (!result?.payload) {
+                emitAppNotification({
+                    title: t('notify.historyRestoreFailed.title'),
+                    message: t('notify.historyRestoreFailed.message'),
+                    level: 'error'
+                });
+                return false;
+            }
 
-        await refreshProjectSnapshotHistory();
-        return restoreWorkspacePayload(result, {
-            modeLabel: 'Snapshot history',
-            successMessage: snapshot?.projectName
-                ? t('notify.restoredSnapshotNamed', { name: snapshot.projectName })
-                : t('notify.restoredSnapshot')
-        });
+            await refreshProjectSnapshotHistory();
+            return await restoreWorkspacePayload(result, {
+                modeLabel: 'Snapshot history',
+                successMessage: snapshot?.projectName
+                    ? t('notify.restoredSnapshotNamed', { name: snapshot.projectName })
+                    : t('notify.restoredSnapshot')
+            });
+        } catch (error) {
+            markWorkspaceRestoreFailed(error);
+            return false;
+        } finally {
+            isRuntimeWorkspaceRestoring = false;
+        }
     }
 
     async function performProjectAutosave({ notify = false, forceExport = false, snapshotNote = null } = {}) {
+        if (isRuntimeWorkspaceRestoring) {
+            return false;
+        }
+        if (getAppContext().workspaceRestoreFailed && !notify && !forceExport && !snapshotNote) {
+            return false;
+        }
         if (isProjectAutosaveRunning) {
             return false;
         }
@@ -467,8 +521,16 @@ export function createProjectWorkspaceController({
         }
         const openProject = getAppContext().openProjectFile;
         if (typeof openProject === 'function') {
+            if (isRuntimeWorkspaceRestoring) {
+                return;
+            }
+            isRuntimeWorkspaceRestoring = true;
             try {
-                await openProject();
+                const openedProject = await openProject();
+                if (!openedProject) {
+                    return;
+                }
+                setAppService('workspaceRestoreFailed', false);
                 const projectId = getAppContext().currentProjectId || ensureRuntimeProjectId(localStorage);
                 setAppService('currentProjectId', projectId);
                 setRuntimeProjectId(projectId, localStorage);
@@ -481,10 +543,12 @@ export function createProjectWorkspaceController({
                     lastOpenedAt: Date.now(),
                     source: 'project-folder'
                 });
-                void performProjectAutosave({ notify: false });
             } catch (error) {
                 logger.warn('Open project folder failed', error);
+            } finally {
+                isRuntimeWorkspaceRestoring = false;
             }
+            void performProjectAutosave({ notify: false });
             return;
         }
 

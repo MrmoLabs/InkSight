@@ -77,7 +77,9 @@ export function createReaderLoader({
                 resolveOutlineSidebar()?.render(reader.getOutline(), reader.pdfDoc);
 
                 if (md5) {
-                    documentHistoryManager.restoreState(md5);
+                    await documentHistoryManager.restoreState(md5, {
+                        restoreWorkspaceData: !getAppContext().workspaceSnapshotRestored
+                    });
                     documentHistoryManager.startAutoSave(md5, fileData.name.replace(/\.[^/.]+$/, ''));
                 }
             }

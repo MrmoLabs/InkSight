@@ -1,3 +1,5 @@
+import { isInksightPayload } from './inksight-file-types.js';
+
 export const INKSIGHT_PROJECT_KIND = 'inksight-project';
 export const INKSIGHT_PROJECT_VERSION = 1;
 export const INKSIGHT_PROJECT_MANIFEST = 'project.json';
@@ -155,8 +157,8 @@ export function isInksightProjectManifest(value) {
     return Boolean(
         value
         && value.kind === INKSIGHT_PROJECT_KIND
-        && typeof value.version === 'number'
-        && value.payload
+        && value.version === INKSIGHT_PROJECT_VERSION
+        && isInksightPayload(value.payload)
     );
 }
 
@@ -284,6 +286,7 @@ export async function hydrateProjectData({
     const payload = cloneSerializable(manifest.payload);
     const cleanupUrls = [];
     const assetCache = new Map();
+    const assetSizeByPath = new Map((manifest.assets || []).map((entry) => [entry.path, entry.size]));
 
     const materializeAsset = async (path) => {
         if (typeof path !== 'string' || !path.startsWith(`${PROJECT_ASSETS_DIR}/`)) {
@@ -295,6 +298,10 @@ export async function hydrateProjectData({
         }
 
         const blob = await readBlob(path);
+        const expectedSize = assetSizeByPath.get(path);
+        if (Number.isFinite(expectedSize) && blob.size !== expectedSize) {
+            throw new Error(`Invalid project asset size: ${path}`);
+        }
         const objectUrl = createObjectURL(blob);
         cleanupUrls.push(objectUrl);
         assetCache.set(path, objectUrl);
@@ -324,6 +331,9 @@ export async function hydrateProjectData({
 
     const projectFiles = await Promise.all((manifest.documents || []).map(async (entry) => {
         const blob = await readBlob(entry.path);
+        if (Number.isFinite(entry.size) && blob.size !== entry.size) {
+            throw new Error(`Invalid project document size: ${entry.path}`);
+        }
         const file = new File([blob], entry.name, {
             type: entry.type || blob.type || '',
             lastModified: entry.lastModified || Date.now()

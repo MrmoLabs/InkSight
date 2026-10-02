@@ -31,4 +31,18 @@ describe('deferred board restoration', () => {
         expect(restoreBoardState(payload)).toBe(true);
         expect(listener).toHaveBeenCalledWith(expect.objectContaining({ detail: payload }));
     });
+
+    it('drops a queued document restore after switching books', () => {
+        const listener = vi.fn();
+        window.addEventListener(APP_EVENTS.RESTORE_BOARD_STATE, listener);
+        setAppService('currentBook', { md5: 'book-a' });
+
+        expect(restoreBoardState({ elements: [], expectedBookMd5: 'book-a' })).toBe(false);
+        setAppService('currentBook', { md5: 'book-b' });
+        setAppService('board', {});
+
+        expect(flushPendingBoardRestore()).toBe(false);
+        expect(listener).not.toHaveBeenCalled();
+        window.removeEventListener(APP_EVENTS.RESTORE_BOARD_STATE, listener);
+    });
 });

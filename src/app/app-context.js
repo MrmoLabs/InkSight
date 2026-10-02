@@ -15,6 +15,8 @@ const DEFAULT_CONTEXT = {
     board: null,
     pendingRestore: null,
     pendingBoardRestore: null,
+    workspaceSnapshotRestored: false,
+    workspaceRestoreFailed: false,
     pendingDocumentImport: null,
     openProjectFile: null,
     getProjectFiles: null,
@@ -75,6 +77,9 @@ export function flushPendingBoardRestore() {
 
     const payload = context.pendingBoardRestore;
     context.pendingBoardRestore = null;
+    if (payload.expectedBookMd5 && payload.expectedBookMd5 !== context.currentBook?.md5) {
+        return false;
+    }
     window.dispatchEvent(new CustomEvent(APP_EVENTS.RESTORE_BOARD_STATE, { detail: payload }));
     return true;
 }

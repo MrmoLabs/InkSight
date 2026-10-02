@@ -834,6 +834,11 @@ function setWorkspaceMode(mode, options = {}) {
     }
 
     if (state.workspaceMode === nextMode && !options.force) {
+        const notesCollapsed = splitView?.isRightCollapsed();
+        const modeNeedsNotesPanel = nextMode !== 'reading';
+        if (splitView && notesCollapsed === modeNeedsNotesPanel) {
+            applyWorkspaceLayout(nextMode, options);
+        }
         return;
     }
 

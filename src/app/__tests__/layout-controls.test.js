@@ -110,6 +110,32 @@ describe('layout-controls', () => {
         expect(setWorkspaceMode).not.toHaveBeenCalled();
     });
 
+    it('reveals collapsed annotations when the annotations view is selected', () => {
+        setup();
+        const annotationList = document.getElementById('annotation-list');
+        const toggleAnnotations = document.getElementById('toggle-annotations');
+        const setNotesView = mobileNotesViewHandler.mock.calls[0][0];
+
+        annotationList.classList.add('collapsed');
+        toggleAnnotations.classList.remove('active');
+        setNotesView('annotations');
+
+        expect(annotationList.classList.contains('collapsed')).toBe(false);
+        expect(toggleAnnotations.classList.contains('active')).toBe(true);
+        expect(document.body.dataset.notesView).toBe('annotations');
+    });
+
+    it('opens annotations with the mobile annotations toggle', () => {
+        setup();
+        document.body.classList.add('mobile-layout');
+        document.getElementById('annotation-list').classList.add('collapsed');
+
+        document.getElementById('toggle-annotations').click();
+
+        expect(document.body.dataset.notesView).toBe('annotations');
+        expect(document.getElementById('annotation-list').classList.contains('collapsed')).toBe(false);
+    });
+
     it('handles sidebar and notes buttons through split view controls', () => {
         setup();
 

@@ -2040,6 +2040,7 @@ span.material-icons-round.project-home-card-icon {
   color: var(--text-muted);
   font-size: clamp(13px, 1.15vw, 15px);
   line-height: 1.7;
+  text-wrap: balance;
 }
 
 .project-home-hero-actions {
@@ -2621,6 +2622,25 @@ span.material-icons-round.project-home-card-icon {
   .project-home-footer { flex-wrap: wrap; font-size: 8px; }
 }
 
+@media (max-width: 360px) {
+  .project-home--immersive .project-home-hero-actions {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    margin-left: 0;
+  }
+
+  .project-home--immersive .project-home-hero-actions .project-home-btn {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .project-home--immersive .project-home-hero-actions .project-home-cta-arrow {
+    margin-left: auto;
+  }
+}
+
 @media (hover: none) {
   .project-home--immersive .project-home-quick-card:hover {
     transform: none;
@@ -2694,6 +2714,46 @@ span.material-icons-round.project-home-card-icon {
 
 html[lang="zh-CN"] .mindmap-container.mindmap-empty::after {
   content: "开始构建思维导图\A 双击画布创建节点\A 或从文档拖入高亮内容";
+}
+
+@media (max-width: 820px) {
+  body.compact-layout .mindmap-container .draw-toolbar {
+    left: 10px;
+    right: 10px;
+    width: auto;
+    max-width: none;
+    transform: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    touch-action: pan-x;
+  }
+
+  body.compact-layout .mindmap-container .draw-toolbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  body.compact-layout .mindmap-container .zoom-toolbar {
+    top: 88px;
+    right: 10px;
+  }
+
+  body.compact-layout .mindmap-container .app-toolbar {
+    top: auto;
+    right: 10px;
+    bottom: 10px;
+    left: 50%;
+    width: min(86%, 360px);
+    transform: translateX(-50%);
+  }
+
+  .mindmap-container.mindmap-empty::after {
+    width: max-content;
+    max-width: calc(100% - 24px);
+    box-sizing: border-box;
+    padding: 18px 14px;
+    text-wrap: balance;
+  }
 }
 
 /* The Google Material Icons stylesheet loads after this file and resets
@@ -2774,15 +2834,15 @@ body:not(.mobile-layout) .toolbar-mobile-summary {
   display: none;
 }
 
-/* ---- Project home: two-column reading-room layout ---- */
+/* ---- Legacy project home styles; the immersive start screen has its own layout ---- */
 
-.project-home {
+.project-home:not(.project-home--immersive) {
   background: var(--paper-canvas);
   gap: 26px;
   max-width: 1160px;
 }
 
-.project-home .project-home-hero {
+.project-home:not(.project-home--immersive) .project-home-hero {
   background: transparent;
   border: none;
   box-shadow: none;
@@ -2792,11 +2852,11 @@ body:not(.mobile-layout) .toolbar-mobile-summary {
   row-gap: 12px;
 }
 
-.project-home .project-home-copy {
+.project-home:not(.project-home--immersive) .project-home-copy {
   min-width: 0;
 }
 
-.project-home .project-home-copy p {
+.project-home:not(.project-home--immersive) .project-home-copy p {
   color: var(--ink-muted);
 }
 
@@ -2809,14 +2869,14 @@ span.material-icons-round.project-home-icon {
   font-size: 26px;
 }
 
-.project-home .project-home-hero-actions {
+.project-home:not(.project-home--immersive) .project-home-hero-actions {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   margin-left: auto;
 }
 
-.project-home .project-home-btn.primary {
+.project-home:not(.project-home--immersive) .project-home-btn.primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2825,24 +2885,24 @@ span.material-icons-round.project-home-icon {
   padding: 0 18px;
 }
 
-.project-home .project-home-btn.primary:disabled {
+.project-home:not(.project-home--immersive) .project-home-btn.primary:disabled {
   opacity: 0.45;
 }
 
-.project-home .project-home-grid {
+.project-home:not(.project-home--immersive) .project-home-grid {
   grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr);
   gap: 8px 32px;
   align-items: start;
 }
 
-.project-home .project-home-side {
+.project-home:not(.project-home--immersive) .project-home-side {
   display: flex;
   flex-direction: column;
   gap: 22px;
   min-width: 0;
 }
 
-.project-home .project-home-section {
+.project-home:not(.project-home--immersive) .project-home-section {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -2852,7 +2912,7 @@ span.material-icons-round.project-home-icon {
   background: transparent;
 }
 
-.project-home .project-home-section h3 {
+.project-home:not(.project-home--immersive) .project-home-section h3 {
   margin: 0;
   font-size: 11px;
   font-weight: 700;
@@ -2861,13 +2921,13 @@ span.material-icons-round.project-home-icon {
   color: var(--ink-faint);
 }
 
-.project-home .project-home-list {
+.project-home:not(.project-home--immersive) .project-home-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.project-home .project-home-list-item {
+.project-home:not(.project-home--immersive) .project-home-list-item {
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   padding: 10px 12px;
@@ -2876,12 +2936,12 @@ span.material-icons-round.project-home-icon {
     transform var(--motion-fast) var(--ease-out);
 }
 
-.project-home .project-home-list-item:hover {
+.project-home:not(.project-home--immersive) .project-home-list-item:hover {
   background: var(--paper-raised);
   border-color: var(--line);
 }
 
-.project-home .project-home-list-icon {
+.project-home:not(.project-home--immersive) .project-home-list-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2895,43 +2955,43 @@ span.material-icons-round.project-home-icon {
 }
 
 /* 箭头与左图标同款居中：优先级需压过 vendor 的 .material-icons-round (inline-block) */
-.project-home .project-home-list-arrow {
+.project-home:not(.project-home--immersive) .project-home-list-arrow {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 18px;
 }
 
-.project-home .project-home-action-row:hover .project-home-list-icon {
+.project-home:not(.project-home--immersive) .project-home-action-row:hover .project-home-list-icon {
   background: var(--brand-soft);
   color: var(--brand-strong);
 }
 
-.project-home .project-home-list-copy {
+.project-home:not(.project-home--immersive) .project-home-list-copy {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.project-home .project-home-list-copy span:first-child {
+.project-home:not(.project-home--immersive) .project-home-list-copy span:first-child {
   font-size: 13px;
   font-weight: 600;
   color: var(--ink-strong);
 }
 
-.project-home .project-home-list-copy span:last-child {
+.project-home:not(.project-home--immersive) .project-home-list-copy span:last-child {
   font-size: 12px;
   color: var(--ink-muted);
 }
 
-.project-home .project-home-list-empty {
+.project-home:not(.project-home--immersive) .project-home-list-empty {
   color: var(--ink-faint);
   font-size: 13px;
   padding: 10px 2px;
 }
 
 @media (max-width: 1000px) {
-  .project-home .project-home-grid {
+  .project-home:not(.project-home--immersive) .project-home-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -3425,6 +3485,25 @@ body.mobile-layout .reader-container .selection-mode-floating .icon-btn {
   flex: 0 0 38px;
 }
 
+/* Keep the complete selection dock visible on narrow phones. At 320px the
+   default touch targets cover the zoom readout and clip the final action. */
+@media (max-width: 360px) {
+  body.mobile-layout .reader-container .selection-mode-floating {
+    right: 8px;
+    max-width: calc(100% - 16px);
+    gap: 1px;
+    padding: 3px;
+  }
+
+  body.mobile-layout .reader-container .selection-mode-floating .icon-btn {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    flex-basis: 32px;
+  }
+}
+
 /* Compact toolbar: collapse to at most two rows by dropping controls that are
    duplicated in the library panel, and keeping the primary row scrollable. */
 body.compact-layout .reader-container .toolbar,
@@ -3433,6 +3512,19 @@ body.mobile-layout .reader-container .toolbar {
   overflow-x: auto;
   scrollbar-width: none;
   gap: 8px;
+}
+
+/* A scroll container clips its descendants vertically, regardless of their
+   z-index. Let an expanded desktop menu escape the compact title bar. */
+body.compact-layout .reader-container .toolbar:has(.desktop-toolbar-menu[open]) {
+  overflow: visible;
+}
+
+@media (max-width: 820px) {
+  body.compact-layout .desktop-toolbar-menu > .toolbar-menu-popover {
+    left: 0;
+    right: auto;
+  }
 }
 
 body.compact-layout .reader-container .toolbar::-webkit-scrollbar,
@@ -3678,12 +3770,14 @@ body.mobile-layout #reader-toolbar.mobile-tools-open + #mobile-context-bar .mobi
   .settings-modal {
     width: min(620px, calc(100vw - 20px));
     max-width: none;
-    height: min(480px, calc(100dvh - 24px));
+    height: auto;
     max-height: calc(100dvh - 24px);
   }
 
   .settings-modal__layout {
+    flex: 0 1 auto;
     flex-direction: column;
+    overflow: hidden;
   }
 
   .settings-modal__sidebar {
@@ -3710,8 +3804,14 @@ body.mobile-layout #reader-toolbar.mobile-tools-open + #mobile-context-bar .mobi
   }
 
   .settings-modal__main {
+    flex: 0 1 auto;
     min-height: 0;
+    overflow: hidden;
     padding: 14px 16px 12px;
+  }
+
+  .settings-modal__pages {
+    flex: 0 1 auto;
   }
 
   .settings-modal__actions {
@@ -3771,8 +3871,9 @@ body[data-workspace-mode="map"] #viewer .project-home-hero {
 body[data-workspace-mode="capture"] #viewer .project-home-copy h2,
 body[data-workspace-mode="map"] #viewer .project-home-copy h2 {
   max-width: 14ch;
-  font-size: clamp(34px, 4.2vw, 54px);
+  font-size: clamp(32px, 3.2vw, 44px);
   line-height: 1.06;
+  overflow-wrap: break-word;
   text-wrap: balance;
 }
 

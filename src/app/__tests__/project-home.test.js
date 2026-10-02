@@ -31,4 +31,12 @@ describe('project-home', () => {
         expect(markup).toContain('data-recent-project-id="project-1"');
         expect(markup).toContain('data-home-snapshot-id="snapshot-1"');
     });
+
+    it('puts usable entry actions first when the workspace has no saved state', () => {
+        const markup = renderProjectHome({ canContinueWorkspace: false });
+
+        expect(markup).not.toContain('data-home-action="continue-workspace"');
+        expect(markup).toContain('class="project-home-btn project-home-import primary" data-home-action="import"');
+        expect(markup).toContain('data-home-action="open-project"');
+    });
 });

@@ -58,15 +58,24 @@ export function renderProjectHome(model = {}) {
               <h2>${escapeHtml(model.title || t('home.workspace'))}</h2>
               <p class="text-two-line">${escapeHtml(model.continueSummary || t('home.resumeOpenCapture'))}</p>
               <div class="project-home-hero-actions">
-                <button type="button" class="project-home-btn primary" data-home-action="continue-workspace" ${model.canContinueWorkspace ? '' : 'disabled'} title="${escapeHtml(t('home.resumeWorkspace'))}">
-                  <span class="material-icons-round">play_arrow</span>
-                  <span class="project-home-btn-label">${escapeHtml(t('home.resume'))}</span>
-                  <span class="material-icons-round project-home-cta-arrow">arrow_forward</span>
-                </button>
-                <button type="button" class="project-home-btn project-home-import" data-home-action="import">
-                  <span class="material-icons-round">library_add</span>
+                ${model.canContinueWorkspace ? `
+                  <button type="button" class="project-home-btn primary" data-home-action="continue-workspace" title="${escapeHtml(t('home.resumeWorkspace'))}">
+                    <span class="material-icons-round" aria-hidden="true">play_arrow</span>
+                    <span class="project-home-btn-label">${escapeHtml(t('home.resume'))}</span>
+                    <span class="material-icons-round project-home-cta-arrow" aria-hidden="true">arrow_forward</span>
+                  </button>
+                ` : ''}
+                <button type="button" class="project-home-btn project-home-import ${model.canContinueWorkspace ? '' : 'primary'}" data-home-action="import">
+                  <span class="material-icons-round" aria-hidden="true">library_add</span>
                   <span class="project-home-btn-label">${escapeHtml(t('home.importDocuments'))}</span>
+                  ${model.canContinueWorkspace ? '' : '<span class="material-icons-round project-home-cta-arrow" aria-hidden="true">arrow_forward</span>'}
                 </button>
+                ${model.canContinueWorkspace ? '' : `
+                  <button type="button" class="project-home-btn" data-home-action="open-project">
+                    <span class="material-icons-round" aria-hidden="true">folder_open</span>
+                    <span class="project-home-btn-label">${escapeHtml(t('home.openProject'))}</span>
+                  </button>
+                `}
               </div>
             </div>
             <div class="project-home-scene" aria-hidden="true">
@@ -96,10 +105,10 @@ export function renderProjectHome(model = {}) {
             <div class="project-home-quick-grid">
               ${quickActions.map((item, index) => `
                 <button type="button" class="project-home-quick-card" data-home-action="${item.action}" style="--home-card-index:${index}">
-                  <span class="project-home-quick-top"><span class="project-home-quick-icon material-icons-round">${item.icon}</span><span class="project-home-quick-number">0${index + 1}</span></span>
+                  <span class="project-home-quick-top"><span class="project-home-quick-icon material-icons-round" aria-hidden="true">${item.icon}</span><span class="project-home-quick-number" aria-hidden="true">0${index + 1}</span></span>
                   <span class="project-home-quick-title">${escapeHtml(item.label)}</span>
                   <span class="project-home-quick-hint">${escapeHtml(item.hint)}</span>
-                  <span class="material-icons-round project-home-quick-arrow">arrow_outward</span>
+                  <span class="material-icons-round project-home-quick-arrow" aria-hidden="true">arrow_outward</span>
                 </button>
               `).join('')}
             </div>
@@ -110,12 +119,12 @@ export function renderProjectHome(model = {}) {
               <div class="project-home-list">
                 ${recentProjects.length ? recentProjects.map((project) => `
                   <button type="button" class="project-home-list-item" data-recent-project-id="${escapeHtml(project.projectId)}">
-                    <span class="material-icons-round project-home-list-icon">${project.source === 'project-folder' ? 'folder' : 'history'}</span>
+                    <span class="material-icons-round project-home-list-icon" aria-hidden="true">${project.source === 'project-folder' ? 'folder' : 'history'}</span>
                     <span class="project-home-list-copy">
                       <span class="text-two-line">${escapeHtml(project.projectName)}</span>
                       <span class="text-single-line">${escapeHtml(project.directoryName || (project.source === 'project-folder' ? t('home.projectFolder') : t('home.serverWorkspace')))} · ${formatTimestamp(project.lastOpenedAt)}</span>
                     </span>
-                    <span class="material-icons-round project-home-list-arrow">arrow_forward</span>
+                    <span class="material-icons-round project-home-list-arrow" aria-hidden="true">arrow_forward</span>
                   </button>
                 `).join('') : `<div class="project-home-list-empty">${escapeHtml(t('home.noRecentProjects'))}</div>`}
               </div>
@@ -125,12 +134,12 @@ export function renderProjectHome(model = {}) {
               <div class="project-home-list">
                 ${recentSnapshots.length ? recentSnapshots.map((snapshot) => `
                   <button type="button" class="project-home-list-item" data-home-snapshot-id="${escapeHtml(snapshot.snapshotId)}">
-                    <span class="material-icons-round project-home-list-icon">restore</span>
+                    <span class="material-icons-round project-home-list-icon" aria-hidden="true">restore</span>
                     <span class="project-home-list-copy">
                       <span class="text-two-line">${escapeHtml(snapshot.projectName || t('home.workspaceSnapshot'))}</span>
                       <span class="text-single-line">${escapeHtml(snapshot.note ? `${snapshot.note} · ` : '')}${escapeHtml(snapshot.bookName || t('settings.workspace'))} · ${formatTimestamp(Date.parse(snapshot.savedAt || 0))}</span>
                     </span>
-                    <span class="material-icons-round project-home-list-arrow">arrow_forward</span>
+                    <span class="material-icons-round project-home-list-arrow" aria-hidden="true">arrow_forward</span>
                   </button>
                 `).join('') : `<div class="project-home-list-empty">${escapeHtml(t('home.noSnapshots'))}</div>`}
               </div>

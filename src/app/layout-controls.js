@@ -22,6 +22,10 @@ export function setupLayoutToggles({
     const setNotesView = (view) => {
         const nextView = view === 'mindmap' || view === 'split' ? view : 'annotations';
         document.body.dataset.notesView = nextView;
+        if (nextView === 'annotations') {
+            annotationListContainer?.classList.remove('collapsed');
+            toggleAnnotationsBtn?.classList.add('active');
+        }
         showAnnotationsBtn?.classList.toggle('active', nextView === 'annotations');
         showAnnotationsBtn?.setAttribute('aria-selected', String(nextView === 'annotations'));
         showMindmapBtn?.classList.toggle('active', nextView === 'mindmap');
@@ -46,7 +50,7 @@ export function setupLayoutToggles({
                 event: 'click',
                 handler: () => {
                     if (document.body.classList.contains('mobile-layout')) {
-                        setMobileNotesView('annotations');
+                        setNotesView('annotations');
                         return;
                     }
 

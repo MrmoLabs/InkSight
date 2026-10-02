@@ -109,6 +109,10 @@ export default defineConfig({
     }
   },
   build: {
+    // Canvas and diagram libraries are intentionally deferred feature chunks.
+    // Their compressed payloads stay below 450 KB; keep this warning focused
+    // on materially larger deferred bundles instead of their raw source size.
+    chunkSizeWarningLimit: 1500,
     target: 'es2020',
     minify: true,
     cssMinify: false,

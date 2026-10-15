@@ -2617,6 +2617,14 @@ body.compact-layout .annotation-item {
   border-top: 1px solid var(--line);
 }
 
+.settings-modal__reset-status {
+  flex: 1;
+  align-self: center;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .settings-modal__input {
   flex: 1;
   min-width: 0;

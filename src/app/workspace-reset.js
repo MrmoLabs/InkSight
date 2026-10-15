@@ -1,10 +1,11 @@
 import { getAppContext } from './app-context.js';
 import { graphNodesStore } from '../mindmap/graph-view/graph-nodes-store.js';
 import { DOCUMENT_HISTORY_STORAGE_KEY } from '../core/document-history-store.js';
+import { RUNTIME_PROJECT_ID_KEY, RUNTIME_SESSION_ID_KEY } from './runtime-project-identity.js';
 
 const RUNTIME_KEYS_TO_CLEAR = [
-    'inksight_runtime_project_id',
-    'inksight_runtime_session_id',
+    RUNTIME_PROJECT_ID_KEY,
+    RUNTIME_SESSION_ID_KEY,
     'inksight_project_autosave_snapshot',
     'inksight_project_autosave_prefs',
     DOCUMENT_HISTORY_STORAGE_KEY
@@ -41,5 +42,13 @@ export async function resetWorkspace() {
         RUNTIME_KEYS_TO_CLEAR.forEach((key) => localStorage.removeItem(key));
     } catch {
         // localStorage 不可用时跳过（私隐模式等），内存态已清理
+    }
+
+    // Session identity lives in sessionStorage. Clear it independently so a
+    // localStorage failure cannot keep the old session alive after reload.
+    try {
+        sessionStorage.removeItem(RUNTIME_SESSION_ID_KEY);
+    } catch {
+        // Storage restrictions must not prevent the in-memory reset.
     }
 }

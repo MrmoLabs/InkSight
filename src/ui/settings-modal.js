@@ -5,7 +5,7 @@ import { chatComplete } from '../core/ai-client.js';
 import { modalManager } from './modal-manager.js';
 import { emitAppNotification } from './app-notifications.js';
 import { resetWorkspace } from '../app/workspace-reset.js';
-import { getLocale, setLocale, supportedLocales, t } from '../i18n/index.js';
+import { getLocale, normalizeLocale, setLocale, supportedLocales, t } from '../i18n/index.js';
 
 const THEME_OPTIONS = [
     { value: 'default', labelKey: 'theme.default' },
@@ -35,8 +35,6 @@ class SettingsModal {
     constructor() {
         this.isVisible = false;
         this.activeSection = 'appearance';
-        this._resetArmed = false;
-        this._resetTimer = null;
         this.createModal();
     }
 
@@ -104,8 +102,15 @@ class SettingsModal {
         this.resetBtn.type = 'button';
         this.resetBtn.className = 'modal-btn';
         this.resetBtn.dataset.i18n = 'settings.restoreDefaults';
+        this.resetBtn.dataset.i18nTitle = 'settings.restoreScope';
+        this.resetBtn.title = t('settings.restoreScope');
         this.resetBtn.textContent = t('settings.restoreDefaults');
         this.resetBtn.onclick = () => this.handleReset();
+
+        this.resetStatus = document.createElement('span');
+        this.resetStatus.className = 'settings-modal__reset-status';
+        this.resetStatus.setAttribute('role', 'status');
+        this.resetStatus.setAttribute('aria-live', 'polite');
 
         const closeActionBtn = document.createElement('button');
         closeActionBtn.type = 'button';
@@ -115,6 +120,7 @@ class SettingsModal {
         closeActionBtn.onclick = () => this.hide();
 
         actions.appendChild(this.resetBtn);
+        actions.appendChild(this.resetStatus);
         actions.appendChild(closeActionBtn);
 
         this.main = document.createElement('div');
@@ -148,6 +154,7 @@ class SettingsModal {
 
     setActiveSection(key) {
         this.activeSection = key;
+        if (this.resetStatus) this.resetStatus.textContent = '';
         this.navButtons.forEach((btn, btnKey) => {
             btn.classList.toggle('active', btnKey === key);
         });
@@ -187,6 +194,7 @@ class SettingsModal {
         });
         this.themeSelect.value = themeManager.getTheme();
         this.themeSelect.addEventListener('change', () => {
+            this.resetStatus.textContent = '';
             themeManager.setTheme(this.themeSelect.value);
         });
 
@@ -212,7 +220,10 @@ class SettingsModal {
             this.languageSelect.appendChild(option);
         });
         this.languageSelect.value = getLocale();
-        this.languageSelect.addEventListener('change', () => setLocale(this.languageSelect.value));
+        this.languageSelect.addEventListener('change', () => {
+            this.resetStatus.textContent = '';
+            setLocale(this.languageSelect.value);
+        });
         languageRow.appendChild(languageLabel);
         languageRow.appendChild(this.languageSelect);
         section.appendChild(languageRow);
@@ -286,6 +297,7 @@ class SettingsModal {
         valueEl.textContent = format(Number(value));
 
         slider.addEventListener('input', () => {
+            this.resetStatus.textContent = '';
             const next = Number(slider.value);
             valueEl.textContent = format(next);
             onChange(next);
@@ -326,11 +338,11 @@ class SettingsModal {
         return section;
     }
 
-    async handleWorkspaceReset() {
+    async handleWorkspaceReset({ restoreSettings = false } = {}) {
         const confirmed = await modalManager.confirm({
-            title: t('workspace.clearTitle'),
-            message: t('workspace.clearMessage'),
-            confirmLabel: t('workspace.clearAll'),
+            title: t(restoreSettings ? 'settings.restoreTitle' : 'workspace.clearTitle'),
+            message: t(restoreSettings ? 'settings.restoreMessage' : 'workspace.clearMessage'),
+            confirmLabel: t(restoreSettings ? 'settings.restoreConfirm' : 'workspace.clearAll'),
             cancelLabel: t('common.cancel'),
             danger: true
         });
@@ -340,7 +352,16 @@ class SettingsModal {
 
         try {
             await resetWorkspace();
-            emitAppNotification({ message: t('workspace.cleared'), level: 'success' });
+            if (restoreSettings) {
+                themeManager.setTheme('default');
+                setLocale(normalizeLocale(navigator.language));
+                preferencesManager.reset();
+                this.themeSelect.value = themeManager.getTheme();
+                this.languageSelect.value = getLocale();
+                this.syncFromPreferences();
+                this.resetStatus.textContent = t('settings.restored');
+            }
+            emitAppNotification({ message: t(restoreSettings ? 'settings.restored' : 'workspace.cleared'), level: 'success' });
             setTimeout(() => window.location.reload(), 800);
         } catch (error) {
             emitAppNotification({ message: t('workspace.clearFailed', { message: error.message }), level: 'error' });
@@ -554,25 +575,7 @@ class SettingsModal {
     }
 
     handleReset() {
-        if (!this._resetArmed) {
-            this._resetArmed = true;
-            this.resetBtn.textContent = t('settings.confirmRestore');
-            this.resetBtn.classList.add('danger');
-            this._resetTimer = setTimeout(() => this.disarmReset(), 3000);
-            return;
-        }
-
-        this.disarmReset();
-        preferencesManager.reset();
-        this.syncFromPreferences();
-    }
-
-    disarmReset() {
-        this._resetArmed = false;
-        clearTimeout(this._resetTimer);
-        this._resetTimer = null;
-        this.resetBtn.textContent = t('settings.restoreDefaults');
-        this.resetBtn.classList.remove('danger');
+        return this.handleWorkspaceReset({ restoreSettings: true });
     }
 
     syncFromPreferences() {
@@ -591,7 +594,7 @@ class SettingsModal {
         this.themeSelect.value = themeManager.getTheme();
         this.languageSelect.value = getLocale();
         this.syncFromPreferences();
-        this.disarmReset();
+        this.resetStatus.textContent = '';
         this.show();
     }
 
@@ -603,7 +606,7 @@ class SettingsModal {
     hide() {
         this.isVisible = false;
         this.overlay.classList.remove('active');
-        this.disarmReset();
+        this.resetStatus.textContent = '';
     }
 }
 

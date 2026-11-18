@@ -13,7 +13,7 @@
 - **Markdown Parsing**: `marked`
 - **Mind Map / Whiteboard**: `plait` (Drawnix core), `roughjs` (手绘风格)
 - **State Management**: Custom Event Bus + Reactive State (Immer)
-- **Storage**: `idb` (IndexedDB wrapper), `localforage`
+- **Storage**: 原生 IndexedDB、LocalStorage；Electron 使用本机目录。详见 [浏览器工作区存储](BROWSER_STORAGE.md)。
 
 ## 项目结构 (Project Structure)
 
@@ -68,4 +68,4 @@ src/
 1. **Import**: 用户选择文件 -> 生成唯一 Hash ID -> 存入 `state.files` -> `openFile()`.
 2. **Read & Annotate**: 用户在 Reader 中选中文本 -> `HighlightManager` 创建高亮对象 -> 触发 UI 反馈。
 3. **Create Node**: 用户拖拽高亮 -> `CardSystem` 接收数据 -> 在 Drawnix 画板上创建节点。
-4. **Persist**: 所有变更通过 `idb` 或 `localStorage` 实时写入浏览器数据库。
+4. **Persist**: 浏览器版定期检查工作区变化，创建引用共享文件内容的 IndexedDB 快照；阅读位置与偏好使用 LocalStorage。Electron 通过 IPC 写入本机目录。

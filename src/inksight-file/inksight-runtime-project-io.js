@@ -5,7 +5,7 @@ import { createLogger } from '../core/logger.js';
 
 const logger = createLogger('RuntimeProjectIO');
 
-async function serializeBinaryEntries(entries = [], fileKey) {
+async function serializeBinaryEntries(entries = [], fileKey, keepBlobs = false) {
     const results = [];
 
     for (const entry of entries) {
@@ -14,13 +14,14 @@ async function serializeBinaryEntries(entries = [], fileKey) {
             continue;
         }
 
-        const buffer = await source.arrayBuffer();
         results.push({
             path: entry.path,
             mimeType: entry.mimeType || entry.type || source.type || 'application/octet-stream',
             size: entry.size || source.size || 0,
             lastModified: entry.lastModified || source.lastModified || 0,
-            bytes: new Uint8Array(buffer)
+            // IndexedDB can store immutable Blob/File objects directly. Keep
+            // Electron's existing byte-based IPC contract unchanged.
+            ...(keepBlobs ? { blob: source } : { bytes: new Uint8Array(await source.arrayBuffer()) })
         });
     }
 
@@ -70,8 +71,8 @@ export async function saveRuntimeProjectSnapshot({
         projectName: projectName || appContext.currentBook?.name || 'workspace',
         note: note || null,
         manifest,
-        assetEntries: await serializeBinaryEntries(assetEntries, 'blob'),
-        documentEntries: await serializeBinaryEntries(documentEntries, 'file')
+        assetEntries: await serializeBinaryEntries(assetEntries, 'blob', ipc.storageType === 'indexeddb'),
+        documentEntries: await serializeBinaryEntries(documentEntries, 'file', ipc.storageType === 'indexeddb')
     });
 
     return {
@@ -91,7 +92,7 @@ async function hydrateRuntimeSnapshotResult(result) {
                 throw new Error(`Missing runtime project file: ${relativePath}`);
             }
 
-            return new Blob([entry.bytes], { type: entry.mimeType || 'application/octet-stream' });
+            return new Blob([entry.blob || entry.bytes], { type: entry.mimeType || 'application/octet-stream' });
         }
     });
 

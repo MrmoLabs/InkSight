@@ -255,6 +255,62 @@ describe('project-workspace', () => {
         ]);
     });
 
+    function allowSaving() {
+        saveRuntimeProjectSnapshot.mockResolvedValue({
+            success: true,
+            snapshotId: 'snapshot',
+            savedAt: '2026-04-16T10:20:00.000Z',
+            summary: {}
+        });
+    }
+
+    it('skips unchanged background saves but still creates manual snapshots', async () => {
+        allowSaving();
+        const controller = createController();
+        expect(await controller.performProjectAutosave()).toBe(true);
+        expect(await controller.performProjectAutosave()).toBe(false);
+        expect(saveRuntimeProjectSnapshot).toHaveBeenCalledTimes(1);
+        expect(await controller.performProjectAutosave({ snapshotNote: 'Checkpoint' })).toBe(true);
+        expect(await controller.performProjectAutosave({ notify: true })).toBe(true);
+        expect(saveRuntimeProjectSnapshot).toHaveBeenCalledTimes(3);
+    });
+
+    it('detects canvas edits and replacement files even with identical names and sizes', async () => {
+        allowSaving();
+        let file = new File(['one'], 'book.pdf');
+        window.inksight.getProjectFiles = () => [{ id: 'doc', name: 'book.pdf', fileObj: file }];
+        const controller = createController();
+        await controller.performProjectAutosave();
+        expect(await controller.performProjectAutosave()).toBe(false);
+        window.inksight.board.children = [{ id: 'new-node' }];
+        expect(await controller.performProjectAutosave()).toBe(true);
+        file = new File(['two'], 'book.pdf');
+        expect(await controller.performProjectAutosave()).toBe(true);
+        expect(saveRuntimeProjectSnapshot).toHaveBeenCalledTimes(3);
+    });
+
+    it('retries failed saves instead of marking unsaved changes as clean', async () => {
+        const controller = createController();
+        saveRuntimeProjectSnapshot.mockResolvedValueOnce({ success: false });
+        expect(await controller.performProjectAutosave()).toBe(false);
+        allowSaving();
+        expect(await controller.performProjectAutosave()).toBe(true);
+        expect(saveRuntimeProjectSnapshot).toHaveBeenCalledTimes(2);
+    });
+
+    it('keeps edits made during an in-flight save dirty', async () => {
+        let finishSave;
+        saveRuntimeProjectSnapshot.mockImplementationOnce(() => new Promise((resolve) => { finishSave = resolve; }));
+        const controller = createController();
+        const saving = controller.performProjectAutosave();
+        while (!finishSave) await Promise.resolve();
+        window.inksight.board.children = [{ id: 'edited-during-save' }];
+        finishSave({ success: true, summary: {} });
+        expect(await saving).toBe(true);
+        allowSaving();
+        expect(await controller.performProjectAutosave()).toBe(true);
+    });
+
     it('delegates artifact export through the workspace export module', () => {
         const controller = createController();
 

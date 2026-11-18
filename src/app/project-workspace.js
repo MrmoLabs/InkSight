@@ -25,6 +25,7 @@ import { loadRuntimeProjectSnapshot, saveRuntimeProjectSnapshot } from '../inksi
 import { listRecentProjects, recordRecentProject } from './recent-projects.js';
 import { exportWorkspaceArtifact } from './workspace-export.js';
 import { modalManager } from '../ui/modal-manager.js';
+import { buildInksightFilePayload } from '../inksight-file/inksight-file-snapshot.js';
 
 const logger = createLogger('ProjectWorkspace');
 
@@ -51,6 +52,25 @@ export function createProjectWorkspaceController({
     let isProjectAutosaveRunning = false;
     let isRuntimeWorkspaceRestoring = false;
     let saveStatusHideTimeout = null;
+    let lastSavedSignature = null;
+    const fileIdentities = new WeakMap();
+    let nextFileIdentity = 0;
+
+    function workspaceSignature() {
+        const context = getAppContext();
+        // File objects are immutable: identity detects same-name replacements
+        // without rereading large binaries just to check for changes.
+        const files = (context.getProjectFiles?.() || []).map((entry) => {
+            const file = entry.fileObj;
+            if (file && !fileIdentities.has(file)) fileIdentities.set(file, ++nextFileIdentity);
+            return { id: entry.id, name: entry.name, type: entry.type, file: file ? fileIdentities.get(file) : null };
+        });
+        return JSON.stringify({
+            projectId: context.currentProjectId,
+            payload: buildInksightFilePayload({ appContext: context, board: context.board }),
+            files
+        });
+    }
 
     const projectStatusState = {
         ...loadProjectAutosavePrefs(localStorage),
@@ -252,6 +272,7 @@ export function createProjectWorkspaceController({
         }
 
         const runtimeIdentity = ensureProjectIdentity();
+        const signature = workspaceSignature();
         const result = await saveRuntimeProjectSnapshot({
             board,
             appContext,
@@ -264,6 +285,9 @@ export function createProjectWorkspaceController({
         if (!result?.success) {
             return false;
         }
+        // Capture the version from before the async save. Edits made while a
+        // save is in flight must remain dirty for the next automatic save.
+        lastSavedSignature = signature;
 
         try {
             localStorage.setItem(PROJECT_AUTOSAVE_SNAPSHOT_KEY, JSON.stringify({
@@ -482,6 +506,10 @@ export function createProjectWorkspaceController({
                 return true;
             }
 
+            ensureProjectIdentity();
+            if (!notify && !snapshotNote && workspaceSignature() === lastSavedSignature) {
+                return false;
+            }
             showSaveStatus('saving', t('status.savingSnapshot'), 0);
             const saved = await persistRuntimeProjectSnapshot({ note: snapshotNote || t('history.autoNote') });
             if (saved) {
